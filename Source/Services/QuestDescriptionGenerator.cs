@@ -321,12 +321,14 @@ but do not repeat raw data (dates, stats) directly.";
                 chunk =>
                 {
                     chunkCount++;
-                    
+
                     if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
                     {
-                        Log.Message($"[RimTalk-Quests] Chunk #{chunkCount} received: [{chunk?.Length ?? 0} chars] '{chunk}'");
+                        Log.Message(
+                            $"[RimTalk-Quests] Chunk #{chunkCount} received: [{chunk?.Length ?? 0} chars] '{chunk}'"
+                        );
                     }
-                    
+
                     if (!string.IsNullOrEmpty(chunk))
                     {
                         accumulatedContent.Append(chunk);
@@ -335,18 +337,22 @@ but do not repeat raw data (dates, stats) directly.";
                         var enhancedDescription =
                             originalDescription + "\n\n" + accumulatedContent.ToString();
                         quest.description = new TaggedString(enhancedDescription);
-                        
+
                         if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
                         {
-                            Log.Message($"[RimTalk-Quests] Updated quest.description (total {accumulatedContent.Length} chars accumulated)");
+                            Log.Message(
+                                $"[RimTalk-Quests] Updated quest.description (total {accumulatedContent.Length} chars accumulated)"
+                            );
                         }
                     }
                 }
             );
-            
+
             if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
             {
-                Log.Message($"[RimTalk-Quests] Streaming completed. Total chunks: {chunkCount}, Final accumulated length: {accumulatedContent.Length}");
+                Log.Message(
+                    $"[RimTalk-Quests] Streaming completed. Total chunks: {chunkCount}, Final accumulated length: {accumulatedContent.Length}"
+                );
             }
 
             // Final update with complete response to ensure UI reflects the change

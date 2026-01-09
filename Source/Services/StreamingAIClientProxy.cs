@@ -117,9 +117,15 @@ namespace RimTalkQuests.Services
             if (client is OpenAIClient)
             {
                 // Get OpenAI config from settings
-                string baseUrl = config?.Url ?? "";
+                string baseUrl = config?.BaseUrl ?? "";
                 string apiKey = config?.ApiKey ?? "";
-                var extraHeaders = config?.ExtraHeaders;
+
+                // Get extra headers from provider registry if available
+                Dictionary<string, string> extraHeaders = null;
+                if (AIProviderRegistry.Defs.TryGetValue(config.Provider, out var def))
+                {
+                    extraHeaders = def.ExtraHeaders;
+                }
 
                 return await StreamOpenAIAsync(
                     baseUrl,
@@ -182,7 +188,9 @@ namespace RimTalkQuests.Services
 
             if (!string.IsNullOrEmpty(instruction))
             {
-                allMessages.Add(new RimTalk.Client.OpenAI.Message { Role = "system", Content = instruction });
+                allMessages.Add(
+                    new RimTalk.Client.OpenAI.Message { Role = "system", Content = instruction }
+                );
             }
 
             allMessages.AddRange(
@@ -346,7 +354,10 @@ namespace RimTalkQuests.Services
                 }
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (
+                webRequest.result == UnityWebRequest.Result.ConnectionError
+                || webRequest.result == UnityWebRequest.Result.ProtocolError
+            )
             {
                 string errorMsg = webRequest.error;
                 Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
@@ -409,7 +420,10 @@ namespace RimTalkQuests.Services
                 }
             }
 
-            if (webRequest.isNetworkError || webRequest.isHttpError)
+            if (
+                webRequest.result == UnityWebRequest.Result.ConnectionError
+                || webRequest.result == UnityWebRequest.Result.ProtocolError
+            )
             {
                 string errorMsg = webRequest.error;
                 Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");

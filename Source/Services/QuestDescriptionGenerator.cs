@@ -310,12 +310,12 @@ but do not repeat raw data (dates, stats) directly.";
 
             if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
             {
-                Log.Message("[RimTalk-Quests] Starting fixed streaming API call...");
+                Log.Message("[RimTalk-Quests] Starting plain text streaming API call...");
             }
 
-            // Use fixed streaming extension method that bypasses JsonStreamParser bug
+            // Use plain text streaming that bypasses JsonStreamParser entirely
             int chunkCount = 0;
-            var payload = await client.GetFixedStreamingChatCompletionAsync<string>(
+            var payload = await client.StreamPlainTextAsync(
                 instruction,
                 messages,
                 chunk =>

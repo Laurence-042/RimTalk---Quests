@@ -20,21 +20,17 @@ namespace RimTalkQuests.Services
     /// </summary>
     public static class QuestDescriptionGenerator
     {
-        private static readonly Dictionary<int, QuestAIData> _questCache =
-            new Dictionary<int, QuestAIData>();
         private static readonly HashSet<int> _processingQuests = new HashSet<int>();
 
-        private class QuestAIData
+        private class StreamingQuestData
         {
-            public TaggedString Description;
-            public string Name;
+            public string AdditionalContent { get; set; }
         }
 
-        public static int CacheSize => _questCache.Count;
+        public static int ProcessingCount => _processingQuests.Count;
 
         public static void ClearCache()
         {
-            _questCache.Clear();
             _processingQuests.Clear();
         }
 
@@ -50,8 +46,8 @@ namespace RimTalkQuests.Services
 
                 int questId = quest.id;
 
-                // Skip if already cached or processing
-                if (_questCache.ContainsKey(questId) || _processingQuests.Contains(questId))
+                // Skip if already processing
+                if (_processingQuests.Contains(questId))
                     return;
 
                 _processingQuests.Add(questId);
@@ -76,8 +72,11 @@ namespace RimTalkQuests.Services
                     Log.Message($"[RimTalk-Quests] Prompt:\n{prompt}");
                 }
 
-                // Call RimTalk's AI service
-                var result = await CallRimTalkAI(instruction, prompt);
+                // Store original description
+                var originalDescription = quest.description.ToString();
+
+                // Call RimTalk's AI service with streaming
+                var result = await CallRimTalkAI(instruction, prompt, quest);
 
                 if (Prefs.DevMode && result != null)
                 {
@@ -86,32 +85,20 @@ namespace RimTalkQuests.Services
 
                 if (result != null)
                 {
-                    // Parse the result and directly update quest fields
-                    var aiData = ParseAIResponse(result, quest);
-
-                    // Directly modify quest fields instead of caching
-                    if (!aiData.Description.NullOrEmpty())
-                    {
-                        quest.description = aiData.Description;
-                    }
-
-                    if (
-                        !string.IsNullOrEmpty(aiData.Name)
-                        && RimTalkQuestsMod.Settings.enableAIDescriptions
-                    )
-                    {
-                        quest.name = aiData.Name;
-                    }
-
                     if (Prefs.DevMode)
-                        Log.Message($"[RimTalk-Quests] Successfully updated quest: {quest.name}");
+                        Log.Message(
+                            $"[RimTalk-Quests] Successfully enhanced quest: {quest.name}"
+                        );
                 }
                 else
                 {
+                    // Restore original description on failure
+                    quest.description = new TaggedString(originalDescription);
+
                     if (Prefs.DevMode)
                     {
                         Log.Warning(
-                            $"[RimTalk-Quests] Failed to generate description for quest: {quest.name}"
+                            $"[RimTalk-Quests] Failed to generate enhancement for quest: {quest.name}"
                         );
                     }
                 }
@@ -124,38 +111,6 @@ namespace RimTalkQuests.Services
             {
                 _processingQuests.Remove(quest.id);
             }
-        }
-
-        /// <summary>
-        /// Gets cached AI description for a quest
-        /// </summary>
-        public static string GetCachedDescription(Quest quest)
-        {
-            if (quest == null)
-                return null;
-
-            if (_questCache.TryGetValue(quest.id, out var data))
-            {
-                return data.Description;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Gets cached AI name for a quest
-        /// </summary>
-        public static string GetCachedName(Quest quest)
-        {
-            if (quest == null)
-                return null;
-
-            if (_questCache.TryGetValue(quest.id, out var data))
-            {
-                return data.Name;
-            }
-
-            return null;
         }
 
         /// <summary>
@@ -174,14 +129,16 @@ namespace RimTalkQuests.Services
             // Quest-specific instruction
             var questInstruction = $@"
 
-QUEST REWRITING TASK:
-Rewrite quest descriptions to be more engaging and narrative-driven in {lang}.
+QUEST ENHANCEMENT TASK:
+You are providing additional narrative details to enrich a quest description in {lang}.
 
 RULES:
-- Preserve <color=...>tags</color> and <b>bold tags</b> EXACTLY
-- Keep numerical values and proper names unchanged
-- Keep core information intact, add narrative flair
-- Output JSON: {{""name"": ""title in {lang}"", ""description"": ""description in {lang} with preserved tags""}}";
+- Write ONLY additional atmospheric/narrative content that expands on hints in the original
+- Do NOT repeat information already in the original description
+- Expand on vague mentions like ""unknown dangers"", ""mysterious signals"", etc.
+- Keep it brief (2-3 sentences max)
+- Write in {lang}
+- Output JSON: {{""additional_content"": ""your enhancement text""}}";
 
             return baseInstruction + questInstruction;
         }
@@ -321,9 +278,13 @@ RULES:
         }
 
         /// <summary>
-        /// Calls RimTalk's AI service to generate quest description
+        /// Calls RimTalk's AI service to generate quest enhancement using streaming
         /// </summary>
-        private static async Task<string> CallRimTalkAI(string instruction, string prompt)
+        private static async Task<string> CallRimTalkAI(
+            string instruction,
+            string prompt,
+            Quest quest
+        )
         {
             // Get AI client from RimTalk
             var client = await AIClientFactory.GetAIClientAsync();
@@ -338,39 +299,29 @@ RULES:
             // Build message list
             var messages = new List<(Role, string)> { (Role.User, prompt) };
 
-            // Call AI service
-            var payload = await client.GetChatCompletionAsync(instruction, messages);
+            var accumulatedContent = new StringBuilder();
+            var originalDescription = quest.description.ToString();
+
+            // Call AI service with streaming
+            var payload = await client.GetStreamingChatCompletionAsync<StreamingQuestData>(
+                instruction,
+                messages,
+                chunk =>
+                {
+                    if (chunk?.AdditionalContent != null)
+                    {
+                        accumulatedContent.Append(chunk.AdditionalContent);
+
+                        // Update quest description in real-time
+                        var enhancedDescription = originalDescription
+                            + "\n\n"
+                            + accumulatedContent.ToString();
+                        quest.description = new TaggedString(enhancedDescription);
+                    }
+                }
+            );
 
             return payload?.Response;
-        }
-
-        /// <summary>
-        /// Parses AI response and extracts name and description
-        /// </summary>
-        private static QuestAIData ParseAIResponse(string response, Quest quest)
-        {
-            // Try to parse as JSON first
-            if (response.Contains("{") && response.Contains("}"))
-            {
-                int startIndex = response.IndexOf('{');
-                int endIndex = response.LastIndexOf('}') + 1;
-                string jsonPart = response.Substring(startIndex, endIndex - startIndex);
-
-                // Simple JSON parsing (avoiding dependencies)
-                string name = ExtractJsonValue(jsonPart, "name");
-                string description = ExtractJsonValue(jsonPart, "description");
-
-                return new QuestAIData
-                {
-                    Name = !string.IsNullOrEmpty(name) ? name : quest.name,
-                    Description = !string.IsNullOrEmpty(description)
-                        ? new TaggedString(description)
-                        : new TaggedString(response)
-                };
-            }
-
-            // Fallback: use the entire response as description
-            return new QuestAIData { Name = quest.name, Description = new TaggedString(response) };
         }
 
         /// <summary>

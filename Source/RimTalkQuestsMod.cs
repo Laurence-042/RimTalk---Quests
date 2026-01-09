@@ -75,7 +75,7 @@ namespace RimTalkQuests
             
             listingStandard.Gap();
             listingStandard.Label("RimTalk-Quests uses your existing RimTalk AI configuration.");
-            listingStandard.Label($"Cached descriptions: {Services.QuestDescriptionGenerator.CacheSize}");
+            listingStandard.Label($"Currently processing: {Services.QuestDescriptionGenerator.ProcessingCount} quests");
             
             listingStandard.End();
         }

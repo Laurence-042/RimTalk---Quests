@@ -1,0 +1,9 @@
+<Project>
+    <PropertyGroup>
+        <!-- Enable local DLLs for IntelliSense -->
+        <UseLocalDlls>true</UseLocalDlls>
+        
+        <!-- Set RimWorld directory -->
+        <RimWorldDir>D:\SteamLibrary\steamapps\common\RimWorld</RimWorldDir>
+    </PropertyGroup>
+</Project>

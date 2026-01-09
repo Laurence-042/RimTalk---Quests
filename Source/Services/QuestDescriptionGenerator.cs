@@ -5,20 +5,22 @@ using System.Text;
 using System.Threading.Tasks;
 using RimWorld;
 using RimWorld.QuestGen;
+using RimTalk.Client;
+using RimTalk.Data;
 using Verse;
 
 namespace RimTalkQuests.Services
 {
     /// <summary>
     /// Service for generating AI-powered quest descriptions.
-    /// 
     /// This service integrates with RimTalk's AI functionality to create
     /// dynamic, context-aware quest narratives.
     /// </summary>
     public static class QuestDescriptionGenerator
     {
-        private static Dictionary<int, QuestAIData> _questCache = new Dictionary<int, QuestAIData>();
-        private static HashSet<int> _processingQuests = new HashSet<int>();
+        private static readonly Dictionary<int, QuestAIData> _questCache =
+            new Dictionary<int, QuestAIData>();
+        private static readonly HashSet<int> _processingQuests = new HashSet<int>();
 
         private class QuestAIData
         {
@@ -53,7 +55,10 @@ namespace RimTalkQuests.Services
                 _processingQuests.Add(questId);
 
                 if (Prefs.DevMode)
-                    Log.Message($"[RimTalk-Quests] Generating AI description for quest: {quest.name}");
+                {
+                    Log.Message(
+                        $"[RimTalk-Quests] Generating AI description for quest: {quest.name}");
+                }
 
                 // Build the prompt
                 string prompt = BuildQuestPrompt(quest);
@@ -64,21 +69,31 @@ namespace RimTalkQuests.Services
 
                 if (result != null)
                 {
-                    // Parse the result
+                    // Parse the result and directly update quest fields
                     var aiData = ParseAIResponse(result, quest);
-                    
-                    if (RimTalkQuestsMod.Settings.cacheDescriptions)
+
+                    // Directly modify quest fields instead of caching
+                    if (!string.IsNullOrEmpty(aiData.Description))
                     {
-                        _questCache[questId] = aiData;
+                        quest.description = aiData.Description;
+                    }
+
+                    if (!string.IsNullOrEmpty(aiData.Name)
+                        && RimTalkQuestsMod.Settings.enableAIDescriptions)
+                    {
+                        quest.name = aiData.Name;
                     }
 
                     if (Prefs.DevMode)
-                        Log.Message($"[RimTalk-Quests] Successfully generated AI description for: {quest.name}");
+                        Log.Message($"[RimTalk-Quests] Successfully updated quest: {quest.name}");
                 }
                 else
                 {
                     if (Prefs.DevMode)
-                        Log.Warning($"[RimTalk-Quests] Failed to generate description for quest: {quest.name}");
+                    {
+                        Log.Warning(
+                            $"[RimTalk-Quests] Failed to generate description for quest: {quest.name}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -144,13 +159,13 @@ Respond in this JSON format:
         private static string BuildQuestPrompt(Quest quest)
         {
             var sb = new StringBuilder();
-            
+
             sb.AppendLine("Rewrite this RimWorld quest with creative narrative flair:");
             sb.AppendLine();
             sb.AppendLine($"Original Title: {quest.name}");
             sb.AppendLine($"Original Description: {quest.description}");
             sb.AppendLine();
-            
+
             // Add quest context
             if (quest.root != null)
             {
@@ -187,81 +202,24 @@ Respond in this JSON format:
         {
             try
             {
-                // Use reflection to access RimTalk's AIService
-                var rimTalkAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "RimTalk");
-
-                if (rimTalkAssembly == null)
-                {
-                    Log.Warning("[RimTalk-Quests] RimTalk assembly not found");
-                    return null;
-                }
-
-                // Get AIClientFactory type
-                var factoryType = rimTalkAssembly.GetType("RimTalk.Client.AIClientFactory");
-                if (factoryType == null)
-                {
-                    Log.Warning("[RimTalk-Quests] AIClientFactory type not found");
-                    return null;
-                }
-
-                // Get the GetAIClientAsync method
-                var getClientMethod = factoryType.GetMethod("GetAIClientAsync");
-                if (getClientMethod == null)
-                {
-                    Log.Warning("[RimTalk-Quests] GetAIClientAsync method not found");
-                    return null;
-                }
-
-                // Call GetAIClientAsync
-                var clientTask = (Task)getClientMethod.Invoke(null, null);
-                await clientTask.ConfigureAwait(false);
-
-                // Get the result (IAIClient)
-                var resultProperty = clientTask.GetType().GetProperty("Result");
-                var client = resultProperty?.GetValue(clientTask);
-
+                // Get AI client from RimTalk
+                var client = await AIClientFactory.GetAIClientAsync();
                 if (client == null)
                 {
-                    Log.Warning("[RimTalk-Quests] Failed to get AI client - check RimTalk configuration");
-                    return null;
-                }
-
-                // Get IAIClient.GetChatCompletionAsync method
-                var chatMethod = client.GetType().GetMethod("GetChatCompletionAsync");
-                if (chatMethod == null)
-                {
-                    Log.Warning("[RimTalk-Quests] GetChatCompletionAsync method not found");
+                    Log.Warning(
+                        "[RimTalk-Quests] Failed to get AI client - check RimTalk configuration");
                     return null;
                 }
 
                 // Build message list
-                var roleType = rimTalkAssembly.GetType("RimTalk.Data.Role");
-                var userRole = Enum.Parse(roleType, "User");
+                var messages = new List<(Role, string)> {
+                    (Role.User, prompt)
+                };
 
-                var tupleType = typeof(ValueTuple<,>).MakeGenericType(roleType, typeof(string));
-                var message = Activator.CreateInstance(tupleType, userRole, prompt);
+                // Call AI service
+                var payload = await client.GetChatCompletionAsync(instruction, messages);
 
-                var listType = typeof(List<>).MakeGenericType(tupleType);
-                var messages = Activator.CreateInstance(listType) as System.Collections.IList;
-                messages.Add(message);
-
-                // Call GetChatCompletionAsync
-                var chatTask = (Task)chatMethod.Invoke(client, new object[] { instruction, messages });
-                await chatTask.ConfigureAwait(false);
-
-                // Get the payload result
-                var payloadProperty = chatTask.GetType().GetProperty("Result");
-                var payload = payloadProperty?.GetValue(chatTask);
-
-                if (payload == null)
-                    return null;
-
-                // Extract response from payload
-                var responseProperty = payload.GetType().GetProperty("Response");
-                var response = responseProperty?.GetValue(payload) as string;
-
-                return response;
+                return payload?.Response;
             }
             catch (Exception ex)
             {
@@ -296,20 +254,12 @@ Respond in this JSON format:
                 }
 
                 // Fallback: use the entire response as description
-                return new QuestAIData
-                {
-                    Name = quest.name,
-                    Description = response
-                };
+                return new QuestAIData { Name = quest.name, Description = response };
             }
             catch (Exception ex)
             {
                 Log.Warning($"[RimTalk-Quests] Error parsing AI response: {ex}");
-                return new QuestAIData
-                {
-                    Name = quest.name,
-                    Description = response
-                };
+                return new QuestAIData { Name = quest.name, Description = response };
             }
         }
 
@@ -364,37 +314,19 @@ Respond in this JSON format:
                 if (!ModsConfig.IsActive("cj.rimtalk"))
                     return false;
 
-                // Try to access RimTalk.Settings to check if API is configured
-                var rimTalkAssembly = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "RimTalk");
+                // Check if RimTalk has an active configuration
+                var settings = RimTalk.Settings.Get();
+                var activeConfig = settings?.GetActiveConfig();
 
-                if (rimTalkAssembly == null)
-                    return false;
-
-                var settingsType = rimTalkAssembly.GetType("RimTalk.Settings");
-                if (settingsType == null)
-                    return false;
-
-                var getMethod = settingsType.GetMethod("Get");
-                if (getMethod == null)
-                    return false;
-
-                var settings = getMethod.Invoke(null, null);
-                if (settings == null)
-                    return false;
-
-                // Check if there's an active config
-                var getActiveConfigMethod = settings.GetType().GetMethod("GetActiveConfig");
-                if (getActiveConfigMethod == null)
-                    return false;
-
-                var activeConfig = getActiveConfigMethod.Invoke(settings, null);
                 return activeConfig != null;
             }
             catch (Exception ex)
             {
                 if (Prefs.DevMode)
-                    Log.Warning($"[RimTalk-Quests] Error checking AI service availability: {ex}");
+                {
+                    Log.Warning(
+                        $"[RimTalk-Quests] Error checking AI service availability: {ex}");
+                }
                 return false;
             }
         }

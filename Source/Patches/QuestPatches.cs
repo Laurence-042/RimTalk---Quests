@@ -7,17 +7,16 @@ using Verse;
 namespace RimTalkQuests.Patches
 {
     /// <summary>
-    /// Harmony patch to intercept quest generation and replace descriptions with AI-generated content.
+    /// Harmony patch to intercept quest acceptance and generate AI descriptions.
     /// 
-    /// This patch hooks into RimWorld's quest generation system to provide dynamic, context-aware
+    /// This patch hooks into RimWorld's quest system to provide dynamic, context-aware
     /// quest descriptions using RimTalk's AI integration.
     /// </summary>
-    [HarmonyPatch(typeof(Quest))]
-    [HarmonyPatch("AddToWorld")]
-    public static class QuestGenerationPatch
+    [HarmonyPatch(typeof(Quest), nameof(Quest.Accept))]
+    public static class QuestAcceptPatch
     {
         /// <summary>
-        /// Postfix patch that runs after a quest is added to the world
+        /// Postfix patch that runs after a quest is accepted
         /// </summary>
         [HarmonyPostfix]
         public static void Postfix(Quest __instance)
@@ -35,77 +34,47 @@ namespace RimTalkQuests.Patches
                     return;
                 }
 
-                // Generate AI description asynchronously
+                // Generate AI description and directly modify the quest fields
                 Services.QuestDescriptionGenerator.GenerateQuestDescriptionAsync(__instance);
             }
             catch (Exception ex)
             {
-                Log.Error($"[RimTalk-Quests] Error in quest generation patch: {ex}");
+                Log.Error($"[RimTalk-Quests] Error in quest accept patch: {ex}");
             }
         }
     }
 
     /// <summary>
-    /// Patch to intercept quest description access
-    /// This allows us to provide the AI-generated description when the quest is displayed
+    /// Patch to intercept quest when added to the world
     /// </summary>
-    [HarmonyPatch(typeof(Quest))]
-    [HarmonyPatch("get_description")]
-    public static class QuestDescriptionGetterPatch
+    [HarmonyPatch(typeof(Quest), nameof(Quest.PostAdded))]
+    public static class QuestPostAddedPatch
     {
         /// <summary>
-        /// Postfix to replace description with AI-generated one if available
+        /// Postfix patch that runs after a quest is added
         /// </summary>
         [HarmonyPostfix]
-        public static void Postfix(Quest __instance, ref string __result)
+        public static void Postfix(Quest __instance)
         {
             try
             {
                 if (__instance == null || !RimTalkQuestsMod.Settings.enableAIDescriptions)
                     return;
 
-                // Try to get cached AI description
-                string aiDescription = Services.QuestDescriptionGenerator.GetCachedDescription(__instance);
-                if (!string.IsNullOrEmpty(aiDescription))
+                // Check if RimTalk is properly configured
+                if (!Services.QuestDescriptionGenerator.IsAIServiceAvailable())
                 {
-                    __result = aiDescription;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[RimTalk-Quests] Error in quest description getter patch: {ex}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Patch to intercept quest name access for more creative quest titles
-    /// </summary>
-    [HarmonyPatch(typeof(Quest))]
-    [HarmonyPatch("get_name")]
-    public static class QuestNameGetterPatch
-    {
-        /// <summary>
-        /// Postfix to optionally replace quest name with AI-generated one
-        /// </summary>
-        [HarmonyPostfix]
-        public static void Postfix(Quest __instance, ref string __result)
-        {
-            try
-            {
-                if (__instance == null || !RimTalkQuestsMod.Settings.enableAIDescriptions)
+                    if (Prefs.DevMode)
+                        Log.Warning("[RimTalk-Quests] AI service not available. Make sure RimTalk is configured with an API key.");
                     return;
-
-                // Try to get cached AI name
-                string aiName = Services.QuestDescriptionGenerator.GetCachedName(__instance);
-                if (!string.IsNullOrEmpty(aiName))
-                {
-                    __result = aiName;
                 }
+
+                // Generate AI description for new quests
+                Services.QuestDescriptionGenerator.GenerateQuestDescriptionAsync(__instance);
             }
             catch (Exception ex)
             {
-                Log.Error($"[RimTalk-Quests] Error in quest name getter patch: {ex}");
+                Log.Error($"[RimTalk-Quests] Error in quest post added patch: {ex}");
             }
         }
     }

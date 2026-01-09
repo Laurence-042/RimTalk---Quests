@@ -218,7 +218,29 @@ but do not repeat raw data (dates, stats) directly.";
                                         var rewardDesc = reward.GetDescription(default);
                                         if (!string.IsNullOrEmpty(rewardDesc))
                                         {
-                                            sb.AppendLine($"    - {rewardDesc}");
+                                            sb.Append($"    - {rewardDesc}");
+
+                                            // Add item description if it's a thing reward
+                                            if (
+                                                reward is Reward_Items itemReward
+                                                && itemReward.items != null
+                                            )
+                                            {
+                                                foreach (var thing in itemReward.items)
+                                                {
+                                                    if (thing?.def != null)
+                                                    {
+                                                        var itemDesc = thing.def.description;
+                                                        if (!string.IsNullOrEmpty(itemDesc))
+                                                        {
+                                                            sb.Append($" ({itemDesc})");
+                                                            break; // Only show description for first item type
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            sb.AppendLine();
                                         }
                                     }
                                     catch

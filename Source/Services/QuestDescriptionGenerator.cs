@@ -123,16 +123,26 @@ namespace RimTalkQuests.Services
             var questInstruction =
                 $@"
 
-QUEST ENHANCEMENT TASK:
-You are providing additional narrative details to enrich a quest description in {lang}.
+You are enhancing a RimWorld quest description.
+Your task is NOT to summarize or rewrite mechanically,
+but to add narrative weight and implied motivation.
 
-RULES:
-- Write ONLY additional atmospheric/narrative content that expands on hints in the original
-- Do NOT repeat information already in the original description
-- Expand on vague mentions like ""unknown dangers"", ""mysterious signals"", etc.
-- Keep it brief (2-3 sentences max)
+Writing goals:
+1. Expand vague quest elements into short in-universe narrative.
+2. Avoid making the quest feel like a pure reward transaction.
+3. Emphasize uncertainty, intention, or quiet tension where appropriate.
+4. Match RimWorld's restrained, grounded sci-fi tone (no epic fantasy).
+
+Constraints:
 - Write in {lang}
-- Output ONLY the enhancement text directly, no JSON, no quotes, no formatting";
+- Write 2–3 short paragraphs.
+- Do NOT invent new gameplay mechanics or outcomes.
+- Do NOT contradict the original quest text.
+- Subtext is preferred over explicit exposition.
+- The visitor should feel like a person with intent, not loot.
+
+Use the current scene and faction context when relevant,
+but do not repeat raw data (dates, stats) directly.";
 
             return baseInstruction + questInstruction;
         }

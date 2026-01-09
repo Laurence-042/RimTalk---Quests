@@ -17,9 +17,11 @@ Licensed under [CC BY-NC-SA 4.0 International](http://creativecommons.org/licens
 
 - 🎯 **AI-Generated Quest Descriptions** - Every quest becomes unique with contextually appropriate narratives
 - 🔄 **Seamless Integration** - Uses your existing RimTalk AI configuration
-- 🎮 **Context-Aware** - Descriptions adapt based on colony state and quest parameters
-- 🌐 **Multi-Model Support** - Works with Google Gemini, OpenAI, and other models supported by RimTalk
-- ⚡ **Lightweight** - Minimal performance impact, only generates descriptions when quests are created
+- 🎮 **Context-Aware** - Descriptions adapt based on colony state, faction relationships, and quest history
+- 🌐 **Multi-Model Support** - Works with Google Gemini, OpenAI-compatible APIs, and other models supported by RimTalk
+- ⚡ **Real-time Streaming** - Watch quest descriptions appear in real-time with streaming generation
+- 🎨 **Rich Text Preservation** - Maintains RimWorld's color tags and formatting in generated content
+- 🚀 **No Reflection** - Clean implementation using only public RimTalk APIs
 
 ## 📦 Requirements
 
@@ -47,7 +49,12 @@ RimTalk-Quests uses your existing RimTalk settings:
 - **Model Selection**: Uses your RimTalk model choice (Gemini, OpenAI, etc.)
 - **Rate Limits**: Respects RimTalk's API rate limiting
 
-No additional configuration needed!
+### Mod Settings
+
+In-game mod settings allow you to:
+- ✅ **Enable/Disable AI Descriptions** - Toggle AI-generated quest descriptions on/off
+- 🐛 **Verbose Debug Logging** - Enable detailed chunk-by-chunk streaming logs for troubleshooting
+- 📊 **Processing Status** - View currently processing quest count
 
 ## 🛠️ Development
 
@@ -84,13 +91,16 @@ RimTalk-Quests/
 ### Development Roadmap
 
 - [x] Basic project structure and Harmony integration
-- [ ] RimTalk AI service integration
-- [ ] Context builder for quest information
-- [ ] Prompt engineering for quest descriptions
-- [ ] Caching system for generated descriptions
-- [ ] Settings UI for customization
+- [x] RimTalk AI service integration (streaming support)
+- [x] Context builder for quest information (scene + faction history)
+- [x] Prompt engineering for quest descriptions
+- [x] Real-time streaming generation with chunk callbacks
+- [x] Settings UI for customization
+- [x] Rich text (color tag) preservation
+- [x] Reflection-free implementation using public APIs
+- [ ] Performance optimization and caching
 - [ ] Localization support
-- [ ] Performance optimization
+- [ ] Quest name AI generation (optional)
 
 ## 🤝 Contributing
 
@@ -121,9 +131,10 @@ See [LICENSE](LICENSE) for full terms.
 
 ## 🐛 Known Issues
 
-- Initial integration with RimTalk AI service is in progress
-- Quest description caching not yet implemented
-- Performance optimization needed for high quest volumes
+- First-time setup requires RimTalk API key configuration
+- Quest descriptions generate when quests appear (not instantly visible in some cases)
+- Performance optimization and caching not yet implemented
+- High quest volumes may impact API rate limits
 
 ## 📞 Support
 

@@ -58,7 +58,7 @@ namespace RimTalkQuests
 
         public override string SettingsCategory()
         {
-            return "RimTalk - AI Quests";
+            return "RimTalk - Quests";
         }
 
         public override void DoSettingsWindowContents(Rect inRect)

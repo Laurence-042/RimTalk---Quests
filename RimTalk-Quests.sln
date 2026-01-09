@@ -4,10 +4,6 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimTalkQuests", "RimTalkQuests.csproj", "{1ED0AEEE-B8FC-9F7D-575B-84ED104F7B56}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ref", "ref", "{BD723044-0856-D0CD-08C8-5B40B1E1D1C1}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimTalk", "ref\RimTalk\RimTalk.csproj", "{48B6C889-BD41-FFD5-CE2A-8318A7D63574}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

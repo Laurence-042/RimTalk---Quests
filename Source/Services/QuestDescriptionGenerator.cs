@@ -174,6 +174,9 @@ but do not repeat raw data (dates, stats) directly.";
                 sb.AppendLine($"Challenge: {quest.challengeRating}");
             }
 
+            // Quest rewards
+            AppendQuestRewards(sb, quest);
+
             // Scene information (reusing RimTalk's mechanism)
             AppendSceneContext(sb);
 
@@ -181,6 +184,55 @@ but do not repeat raw data (dates, stats) directly.";
             AppendFactionContext(sb, quest);
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Appends quest rewards information
+        /// </summary>
+        private static void AppendQuestRewards(StringBuilder sb, Quest quest)
+        {
+            var choiceParts = quest.PartsListForReading.OfType<QuestPart_Choice>().ToList();
+
+            if (choiceParts.Any())
+            {
+                sb.AppendLine();
+                sb.AppendLine("--- Quest Rewards ---");
+
+                foreach (var choicePart in choiceParts)
+                {
+                    if (choicePart.choices != null && choicePart.choices.Count > 0)
+                    {
+                        sb.AppendLine($"Choose one of {choicePart.choices.Count} options:");
+
+                        for (int i = 0; i < choicePart.choices.Count; i++)
+                        {
+                            var choice = choicePart.choices[i];
+                            sb.AppendLine($"  Option {i + 1}:");
+
+                            if (choice.rewards != null && choice.rewards.Any())
+                            {
+                                foreach (var reward in choice.rewards)
+                                {
+                                    try
+                                    {
+                                        var rewardDesc = reward.GetDescription(default);
+                                        if (!string.IsNullOrEmpty(rewardDesc))
+                                        {
+                                            sb.AppendLine($"    - {rewardDesc}");
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        sb.AppendLine(
+                                            $"    - {reward.GetType().Name} (description unavailable)"
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

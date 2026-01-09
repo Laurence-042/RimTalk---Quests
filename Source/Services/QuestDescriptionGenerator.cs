@@ -337,7 +337,9 @@ but do not repeat raw data (dates, stats) directly.";
 
                         // Update quest description in real-time
                         var enhancedDescription =
-                            originalDescription + "\n\n" + accumulatedContent.ToString();
+                            originalDescription
+                            + "\n\n───────────\n\n"
+                            + accumulatedContent.ToString();
                         quest.description = new TaggedString(enhancedDescription);
 
                         if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
@@ -360,7 +362,8 @@ but do not repeat raw data (dates, stats) directly.";
             // Final update with complete response to ensure UI reflects the change
             if (payload?.Response != null)
             {
-                var finalDescription = originalDescription + "\n\n" + payload.Response;
+                var finalDescription =
+                    originalDescription + "\n\n───────────\n\n" + payload.Response;
                 quest.description = new TaggedString(finalDescription);
             }
 

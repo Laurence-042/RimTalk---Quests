@@ -142,6 +142,8 @@ Constraints:
 - Do NOT contradict the original quest text.
 - Subtext is preferred over explicit exposition.
 - The visitor should feel like a person with intent, not loot.
+- PRESERVE all <color> tags from the original quest description exactly as they appear.
+- When mentioning highlighted elements (names, items, numbers), use the same <color> tags.
 
 Use the current scene and faction context when relevant,
 but do not repeat raw data (dates, stats) directly.";

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+	<packageId>rimtalk.quests</packageId>
+	<name>RimTalk - AI Quests</name>
+	<author>Based on RimTalk by juicy</author>
+	<description>Dynamic AI-powered quest generation using RimTalk's AI integration!
+
+This mod extends RimTalk to intercept quest generation and create dynamic, context-aware quest descriptions using AI. Every quest becomes unique with AI-generated narratives that adapt to your colony's situation.
+
+Key Features:
+• AI-generated quest descriptions that feel natural and immersive
+• Reuses RimTalk's model configuration (Google Gemini, OpenAI, etc.)
+• Seamlessly integrates with RimWorld's quest system
+• Context-aware narratives based on your colony's state
+
+Requirements:
+• RimTalk must be installed and configured with an API key
+• This mod will use your existing RimTalk AI settings
+
+Attribution:
+This mod is a derivative work based on RimTalk by juicy, licensed under CC BY-NC-SA 4.0.
+Original RimTalk: https://github.com/juicycleff/RimTalk
+
+License: CC BY-NC-SA 4.0 International
+	</description>
+	<supportedVersions>
+		<li>1.5</li>
+		<li>1.6</li>
+	</supportedVersions>
+	<modDependencies>
+		<li>
+			<packageId>brrainz.harmony</packageId>
+			<displayName>Harmony</displayName>
+			<steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+			<downloadUrl>https://github.com/pardeike/HarmonyRimWorld/releases/latest</downloadUrl>
+		</li>
+		<li>
+			<packageId>cj.rimtalk</packageId>
+			<displayName>RimTalk</displayName>
+			<steamWorkshopUrl>steam://url/CommunityFilePage/3378714281</steamWorkshopUrl>
+		</li>
+	</modDependencies>
+	<loadAfter>
+		<li>brrainz.harmony</li>
+		<li>cj.rimtalk</li>
+	</loadAfter>
+	<incompatibleWith>
+		<!-- Add any incompatible mods here -->
+	</incompatibleWith>
+</ModMetaData>

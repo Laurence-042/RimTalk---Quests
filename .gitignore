@@ -1,0 +1,82 @@
+# Reference mods (RimTalk source)
+ref/
+
+# Build outputs
+*.dll
+*.pdb
+*.exe
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+1.5/Assemblies/
+1.6/Assemblies/
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.DotSettings.user
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Build results
+[Bb]uild[Ll]og.*
+
+# .NET Core
+project.assets.json
+project.fragment.lock.json
+*.nuget.props
+*.nuget.targets
+
+# MSBuild Binary and Structured Log
+*.binlog
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Mac files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Backup files
+*.bak
+*.backup
+*~

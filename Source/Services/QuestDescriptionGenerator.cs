@@ -78,6 +78,8 @@ namespace RimTalkQuests.Services
                     Log.Message($"[RimTalk-Quests] AI Response:\n{result}");
                 }
 
+                // Streaming already updated the description in real-time
+                // The result is just for logging/verification
                 if (result != null)
                 {
                     if (Prefs.DevMode)
@@ -323,6 +325,13 @@ but do not repeat raw data (dates, stats) directly.";
                     }
                 }
             );
+
+            // Final update with complete response to ensure UI reflects the change
+            if (payload?.Response != null)
+            {
+                var finalDescription = originalDescription + "\n\n" + payload.Response;
+                quest.description = new TaggedString(finalDescription);
+            }
 
             return payload?.Response;
         }

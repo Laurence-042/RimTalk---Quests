@@ -22,11 +22,6 @@ namespace RimTalkQuests.Services
     {
         private static readonly HashSet<int> _processingQuests = new HashSet<int>();
 
-        private class StreamingQuestData
-        {
-            public string AdditionalContent { get; set; }
-        }
-
         public static int ProcessingCount => _processingQuests.Count;
 
         public static void ClearCache()
@@ -86,9 +81,7 @@ namespace RimTalkQuests.Services
                 if (result != null)
                 {
                     if (Prefs.DevMode)
-                        Log.Message(
-                            $"[RimTalk-Quests] Successfully enhanced quest: {quest.name}"
-                        );
+                        Log.Message($"[RimTalk-Quests] Successfully enhanced quest: {quest.name}");
                 }
                 else
                 {
@@ -120,14 +113,15 @@ namespace RimTalkQuests.Services
         {
             var settings = RimTalk.Settings.Get();
             var lang = Constant.Lang;
-            
+
             // Get base instruction from RimTalk (respects user customization)
             var baseInstruction = string.IsNullOrWhiteSpace(settings.CustomInstruction)
                 ? Constant.DefaultInstruction
                 : settings.CustomInstruction;
 
             // Quest-specific instruction
-            var questInstruction = $@"
+            var questInstruction =
+                $@"
 
 QUEST ENHANCEMENT TASK:
 You are providing additional narrative details to enrich a quest description in {lang}.
@@ -138,7 +132,7 @@ RULES:
 - Expand on vague mentions like ""unknown dangers"", ""mysterious signals"", etc.
 - Keep it brief (2-3 sentences max)
 - Write in {lang}
-- Output JSON: {{""additional_content"": ""your enhancement text""}}";
+- Output ONLY the enhancement text directly, no JSON, no quotes, no formatting";
 
             return baseInstruction + questInstruction;
         }
@@ -302,20 +296,19 @@ RULES:
             var accumulatedContent = new StringBuilder();
             var originalDescription = quest.description.ToString();
 
-            // Call AI service with streaming
-            var payload = await client.GetStreamingChatCompletionAsync<StreamingQuestData>(
+            // Call AI service with streaming - using string type for plain text
+            var payload = await client.GetStreamingChatCompletionAsync<string>(
                 instruction,
                 messages,
                 chunk =>
                 {
-                    if (chunk?.AdditionalContent != null)
+                    if (!string.IsNullOrEmpty(chunk))
                     {
-                        accumulatedContent.Append(chunk.AdditionalContent);
+                        accumulatedContent.Append(chunk);
 
                         // Update quest description in real-time
-                        var enhancedDescription = originalDescription
-                            + "\n\n"
-                            + accumulatedContent.ToString();
+                        var enhancedDescription =
+                            originalDescription + "\n\n" + accumulatedContent.ToString();
                         quest.description = new TaggedString(enhancedDescription);
                     }
                 }

@@ -61,12 +61,37 @@
         </Reference>
     </ItemGroup>
 
-    <!-- Reference RimTalk assembly -->
-    <ItemGroup>
+    <!-- Compute paths for RimTalk assembly references -->
+    <PropertyGroup Condition=" '$(UseLocalDlls)' == 'true' AND '$(RimWorldDir)' != '' ">
+        <!-- RimWorld is in: steamapps/common/RimWorld, Workshop is in: steamapps/workshop/content/... -->
+        <SteamAppsDir>$([System.IO.Path]::GetFullPath('$(RimWorldDir)\..\..'))</SteamAppsDir>
+        <WorkshopRimTalkDll>$(SteamAppsDir)\workshop\content\294100\3551203752\$(GameVersion)\Assemblies\RimTalk.dll</WorkshopRimTalkDll>
+        <LocalRimTalkDll>$(RimWorldDir)\Mods\RimTalk\$(GameVersion)\Assemblies\RimTalk.dll</LocalRimTalkDll>
+        
+        <!-- Allow override via RimTalkDll parameter -->
+        <RimTalkDllPath Condition=" '$(RimTalkDll)' != '' ">$(RimTalkDll)</RimTalkDllPath>
+        <RimTalkDllPath Condition=" '$(RimTalkDll)' == '' AND Exists('$(WorkshopRimTalkDll)') ">$(WorkshopRimTalkDll)</RimTalkDllPath>
+        <RimTalkDllPath Condition=" '$(RimTalkDll)' == '' AND !Exists('$(WorkshopRimTalkDll)') AND Exists('$(LocalRimTalkDll)') ">$(LocalRimTalkDll)</RimTalkDllPath>
+    </PropertyGroup>
+
+    <!-- Reference RimTalk assembly from computed path -->
+    <ItemGroup Condition=" '$(UseLocalDlls)' == 'true' AND '$(RimTalkDllPath)' != '' ">
         <Reference Include="RimTalk">
-            <HintPath>$(RimWorldDir)\Mods\RimTalk\$(GameVersion)\Assemblies\RimTalk.dll</HintPath>
+            <HintPath>$(RimTalkDllPath)</HintPath>
             <Private>false</Private>
         </Reference>
+    </ItemGroup>
+
+    <!-- Warning if RimTalk not found -->
+    <Target Name="CheckRimTalkReference" BeforeTargets="BeforeBuild" Condition=" '$(UseLocalDlls)' == 'true' AND '$(RimWorldDir)' != '' AND '$(RimTalkDllPath)' == '' ">
+        <Warning Text="RimTalk.dll not found! Check Workshop (3551203752) or local Mods folder, or use -RimTalkPath parameter" />
+    </Target>
+
+    <!-- Exclude ref directory from compilation -->
+    <ItemGroup>
+        <Compile Remove="ref\**" />
+        <EmbeddedResource Remove="ref\**" />
+        <None Remove="ref\**" />
     </ItemGroup>
 
     <!-- Deploy to RimWorld client -->

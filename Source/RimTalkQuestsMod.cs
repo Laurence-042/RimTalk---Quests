@@ -79,6 +79,12 @@ namespace RimTalkQuests
                 "Cache AI-generated descriptions to avoid regenerating the same quest descriptions."
             );
 
+            listingStandard.CheckboxLabeled(
+                "Verbose Debug Logging",
+                ref Settings.verboseDebugLogging,
+                "Enable detailed debug logs including streaming chunks. Only works in Dev Mode."
+            );
+
             if (listingStandard.ButtonText("Clear Cache"))
             {
                 Services.QuestDescriptionGenerator.ClearCache();
@@ -103,12 +109,14 @@ namespace RimTalkQuests
     {
         public bool enableAIDescriptions = true;
         public bool cacheDescriptions = true;
+        public bool verboseDebugLogging = false;
 
         public override void ExposeData()
         {
             base.ExposeData();
             Scribe_Values.Look(ref enableAIDescriptions, "enableAIDescriptions", true);
             Scribe_Values.Look(ref cacheDescriptions, "cacheDescriptions", true);
+            Scribe_Values.Look(ref verboseDebugLogging, "verboseDebugLogging", false);
         }
     }
 }

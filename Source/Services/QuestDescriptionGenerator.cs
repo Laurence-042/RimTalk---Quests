@@ -309,11 +309,19 @@ but do not repeat raw data (dates, stats) directly.";
             var originalDescription = quest.description.ToString();
 
             // Call AI service with streaming - using string type for plain text
+            int chunkCount = 0;
             var payload = await client.GetStreamingChatCompletionAsync<string>(
                 instruction,
                 messages,
                 chunk =>
                 {
+                    chunkCount++;
+                    
+                    if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+                    {
+                        Log.Message($"[RimTalk-Quests] Chunk #{chunkCount} received: [{chunk?.Length ?? 0} chars] '{chunk}'");
+                    }
+                    
                     if (!string.IsNullOrEmpty(chunk))
                     {
                         accumulatedContent.Append(chunk);
@@ -322,9 +330,19 @@ but do not repeat raw data (dates, stats) directly.";
                         var enhancedDescription =
                             originalDescription + "\n\n" + accumulatedContent.ToString();
                         quest.description = new TaggedString(enhancedDescription);
+                        
+                        if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+                        {
+                            Log.Message($"[RimTalk-Quests] Updated quest.description (total {accumulatedContent.Length} chars accumulated)");
+                        }
                     }
                 }
             );
+            
+            if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+            {
+                Log.Message($"[RimTalk-Quests] Streaming completed. Total chunks: {chunkCount}, Final accumulated length: {accumulatedContent.Length}");
+            }
 
             // Final update with complete response to ensure UI reflects the change
             if (payload?.Response != null)

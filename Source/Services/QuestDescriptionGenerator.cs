@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RimWorld;
+using RimWorld.Planet;
 using RimWorld.QuestGen;
 using RimTalk.Client;
 using RimTalk.Data;
+using RimTalk.Util;
 using Verse;
 
 namespace RimTalkQuests.Services
@@ -157,26 +159,31 @@ namespace RimTalkQuests.Services
         }
 
         /// <summary>
-        /// Builds the system instruction for the AI
+        /// Builds the system instruction for the AI based on RimTalk's configuration
         /// </summary>
         private static string BuildSystemInstruction()
         {
+            var settings = RimTalk.Settings.Get();
             var lang = Constant.Lang;
-            return $@"You are a creative quest writer for RimWorld, a sci-fi colony simulation game.
-Your task is to rewrite quest descriptions to make them more engaging, narrative-driven, and immersive.
+            
+            // Get base instruction from RimTalk (respects user customization)
+            var baseInstruction = string.IsNullOrWhiteSpace(settings.CustomInstruction)
+                ? Constant.DefaultInstruction
+                : settings.CustomInstruction;
 
-IMPORTANT:
-- Write in {lang}
-- Keep the core information intact
-- Preserve any text in <color=...>tags</color> or <b>bold tags</b> EXACTLY as they appear
+            // Quest-specific instruction
+            var questInstruction = $@"
+
+QUEST REWRITING TASK:
+Rewrite quest descriptions to be more engaging and narrative-driven in {lang}.
+
+RULES:
+- Preserve <color=...>tags</color> and <b>bold tags</b> EXACTLY
 - Keep numerical values and proper names unchanged
-- Add narrative flair and storytelling
+- Keep core information intact, add narrative flair
+- Output JSON: {{""name"": ""title in {lang}"", ""description"": ""description in {lang} with preserved tags""}}";
 
-Respond in this JSON format:
-{{
-  ""name"": ""A creative quest title in {lang}"",
-  ""description"": ""The detailed quest description with narrative flair in {lang}, preserving all <color> and <b> tags""
-}}";
+            return baseInstruction + questInstruction;
         }
 
         /// <summary>
@@ -186,39 +193,131 @@ Respond in this JSON format:
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine("Rewrite this RimWorld quest with creative narrative flair:");
-            sb.AppendLine();
-            sb.AppendLine($"Original Title: {quest.name}");
-            sb.AppendLine($"Original Description: {quest.description}");
+            // Quest basic info
+            sb.AppendLine($"Quest Title: {quest.name}");
+            sb.AppendLine($"Quest Description: {quest.description}");
             sb.AppendLine();
 
-            // Add quest context
+            // Quest metadata
             if (quest.root != null)
             {
-                sb.AppendLine($"Quest Type: {quest.root.defName}");
+                sb.AppendLine($"Type: {quest.root.defName}");
             }
 
-            // Add challenge rating
             if (quest.challengeRating > 0)
             {
-                sb.AppendLine($"Challenge Level: {quest.challengeRating}");
+                sb.AppendLine($"Challenge: {quest.challengeRating}");
             }
 
-            // Add colony context if available
-            if (Find.CurrentMap != null)
-            {
-                var map = Find.CurrentMap;
-                var colonists = map.mapPawns.FreeColonistsSpawnedCount;
-                sb.AppendLine($"Colony has {colonists} colonists");
-            }
+            // Scene information (reusing RimTalk's mechanism)
+            AppendSceneContext(sb);
 
-            // Check if quest has multiple parts (complex quest)
-            if (quest.PartsListForReading != null && quest.PartsListForReading.Count > 1)
-            {
-                sb.AppendLine($"Quest has {quest.PartsListForReading.Count} objectives");
-            }
+            // Faction history context
+            AppendFactionContext(sb, quest);
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Appends scene context (time, weather, location, wealth) like RimTalk
+        /// </summary>
+        private static void AppendSceneContext(StringBuilder sb)
+        {
+            var gameData = CommonUtil.GetInGameData();
+            var currentMap = Find.CurrentMap;
+
+            if (currentMap == null)
+                return;
+
+            sb.AppendLine();
+            sb.AppendLine("--- Current Scene ---");
+
+            // Time and date
+            sb.AppendLine($"Time: {gameData.Hour12HString}");
+            sb.AppendLine($"Date: {gameData.DateString}");
+            sb.AppendLine($"Season: {gameData.SeasonString}");
+            sb.AppendLine($"Weather: {gameData.WeatherString}");
+
+            // Colony info
+            var colonists = currentMap.mapPawns.FreeColonistsSpawnedCount;
+            sb.AppendLine($"Colony: {colonists} colonists");
+
+            var wealth = currentMap.wealthWatcher.WealthTotal;
+            sb.AppendLine($"Wealth: {Describer.Wealth(wealth)}");
+
+            // Location
+            if (currentMap.Parent != null)
+            {
+                sb.AppendLine($"Location: {currentMap.Parent.Label}");
+            }
+        }
+
+        /// <summary>
+        /// Appends faction history and relationship context
+        /// </summary>
+        private static void AppendFactionContext(StringBuilder sb, Quest quest)
+        {
+            // Get involved factions
+            var factions = quest.InvolvedFactions?.ToList();
+            if (factions == null || factions.Count == 0)
+                return;
+
+            var mainFaction = factions.FirstOrDefault();
+            if (mainFaction == null)
+                return;
+
+            sb.AppendLine();
+            sb.AppendLine("--- Faction Context ---");
+            sb.AppendLine($"From: {mainFaction.Name}");
+
+            // Faction relationship
+            var playerFaction = Faction.OfPlayer;
+            if (playerFaction != null)
+            {
+                var relation = mainFaction.RelationKindWith(playerFaction);
+                var goodwill = mainFaction.GoodwillWith(playerFaction);
+                sb.AppendLine($"Relationship: {relation} (goodwill: {goodwill})");
+            }
+
+            // Historical quests from this faction
+            AppendFactionQuestHistory(sb, mainFaction);
+        }
+
+        /// <summary>
+        /// Appends recent quest history with this faction
+        /// </summary>
+        private static void AppendFactionQuestHistory(StringBuilder sb, Faction faction)
+        {
+            var questManager = Find.QuestManager;
+            if (questManager == null)
+                return;
+
+            // Get recent completed/failed quests from this faction
+            var recentQuests = questManager.QuestsListForReading
+                .Where(
+                    q =>
+                        q.Historical
+                        && q.InvolvedFactions.Contains(faction)
+                        && q.TicksSinceCleanup < GenDate.TicksPerQuadrum
+                ) // Last quadrum
+                .OrderByDescending(q => q.cleanupTick)
+                .Take(3)
+                .ToList();
+
+            if (recentQuests.Any())
+            {
+                sb.AppendLine($"Recent history with {faction.Name}:");
+                foreach (var q in recentQuests)
+                {
+                    var outcome = q.State switch
+                    {
+                        QuestState.EndedSuccess => "succeeded",
+                        QuestState.EndedFailed => "failed",
+                        _ => "ended"
+                    };
+                    sb.AppendLine($"  - {q.name} ({outcome})");
+                }
+            }
         }
 
         /// <summary>
@@ -226,31 +325,23 @@ Respond in this JSON format:
         /// </summary>
         private static async Task<string> CallRimTalkAI(string instruction, string prompt)
         {
-            try
+            // Get AI client from RimTalk
+            var client = await AIClientFactory.GetAIClientAsync();
+            if (client == null)
             {
-                // Get AI client from RimTalk
-                var client = await AIClientFactory.GetAIClientAsync();
-                if (client == null)
-                {
-                    Log.Warning(
-                        "[RimTalk-Quests] Failed to get AI client - check RimTalk configuration"
-                    );
-                    return null;
-                }
-
-                // Build message list
-                var messages = new List<(Role, string)> { (Role.User, prompt) };
-
-                // Call AI service
-                var payload = await client.GetChatCompletionAsync(instruction, messages);
-
-                return payload?.Response;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[RimTalk-Quests] Error calling RimTalk AI service: {ex}");
+                Log.Warning(
+                    "[RimTalk-Quests] Failed to get AI client - check RimTalk configuration"
+                );
                 return null;
             }
+
+            // Build message list
+            var messages = new List<(Role, string)> { (Role.User, prompt) };
+
+            // Call AI service
+            var payload = await client.GetChatCompletionAsync(instruction, messages);
+
+            return payload?.Response;
         }
 
         /// <summary>
@@ -258,44 +349,28 @@ Respond in this JSON format:
         /// </summary>
         private static QuestAIData ParseAIResponse(string response, Quest quest)
         {
-            try
+            // Try to parse as JSON first
+            if (response.Contains("{") && response.Contains("}"))
             {
-                // Try to parse as JSON first
-                if (response.Contains("{") && response.Contains("}"))
+                int startIndex = response.IndexOf('{');
+                int endIndex = response.LastIndexOf('}') + 1;
+                string jsonPart = response.Substring(startIndex, endIndex - startIndex);
+
+                // Simple JSON parsing (avoiding dependencies)
+                string name = ExtractJsonValue(jsonPart, "name");
+                string description = ExtractJsonValue(jsonPart, "description");
+
+                return new QuestAIData
                 {
-                    int startIndex = response.IndexOf('{');
-                    int endIndex = response.LastIndexOf('}') + 1;
-                    string jsonPart = response.Substring(startIndex, endIndex - startIndex);
-
-                    // Simple JSON parsing (avoiding dependencies)
-                    string name = ExtractJsonValue(jsonPart, "name");
-                    string description = ExtractJsonValue(jsonPart, "description");
-
-                    return new QuestAIData
-                    {
-                        Name = !string.IsNullOrEmpty(name) ? name : quest.name,
-                        Description = !string.IsNullOrEmpty(description) 
-                            ? new TaggedString(description) 
-                            : new TaggedString(response)
-                    };
-                }
-
-                // Fallback: use the entire response as description
-                return new QuestAIData 
-                { 
-                    Name = quest.name, 
-                    Description = new TaggedString(response) 
+                    Name = !string.IsNullOrEmpty(name) ? name : quest.name,
+                    Description = !string.IsNullOrEmpty(description)
+                        ? new TaggedString(description)
+                        : new TaggedString(response)
                 };
             }
-            catch (Exception ex)
-            {
-                Log.Warning($"[RimTalk-Quests] Error parsing AI response: {ex}");
-                return new QuestAIData 
-                { 
-                    Name = quest.name, 
-                    Description = new TaggedString(response) 
-                };
-            }
+
+            // Fallback: use the entire response as description
+            return new QuestAIData { Name = quest.name, Description = new TaggedString(response) };
         }
 
         /// <summary>
@@ -344,25 +419,14 @@ Respond in this JSON format:
         /// </summary>
         public static bool IsAIServiceAvailable()
         {
-            try
-            {
-                if (!ModsConfig.IsActive("cj.rimtalk"))
-                    return false;
-
-                // Check if RimTalk has an active configuration
-                var settings = RimTalk.Settings.Get();
-                var activeConfig = settings?.GetActiveConfig();
-
-                return activeConfig != null;
-            }
-            catch (Exception ex)
-            {
-                if (Prefs.DevMode)
-                {
-                    Log.Warning($"[RimTalk-Quests] Error checking AI service availability: {ex}");
-                }
+            if (!ModsConfig.IsActive("cj.rimtalk"))
                 return false;
-            }
+
+            // Check if RimTalk has an active configuration
+            var settings = RimTalk.Settings.Get();
+            var activeConfig = settings?.GetActiveConfig();
+
+            return activeConfig != null;
         }
     }
 }

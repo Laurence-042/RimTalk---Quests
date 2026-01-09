@@ -24,7 +24,7 @@ namespace RimTalkQuests.Services
 
         private class QuestAIData
         {
-            public string Description;
+            public TaggedString Description;
             public string Name;
         }
 
@@ -57,15 +57,30 @@ namespace RimTalkQuests.Services
                 if (Prefs.DevMode)
                 {
                     Log.Message(
-                        $"[RimTalk-Quests] Generating AI description for quest: {quest.name}");
+                        $"[RimTalk-Quests] Generating AI description for quest: {quest.name}"
+                    );
                 }
 
                 // Build the prompt
                 string prompt = BuildQuestPrompt(quest);
                 string instruction = BuildSystemInstruction();
 
+                if (Prefs.DevMode)
+                {
+                    var config = RimTalk.Settings.Get().GetActiveConfig();
+                    var model = config?.SelectedModel ?? "Unknown";
+                    Log.Message($"[RimTalk-Quests] Using model: {model}");
+                    Log.Message($"[RimTalk-Quests] Instruction:\n{instruction}");
+                    Log.Message($"[RimTalk-Quests] Prompt:\n{prompt}");
+                }
+
                 // Call RimTalk's AI service
                 var result = await CallRimTalkAI(instruction, prompt);
+
+                if (Prefs.DevMode && result != null)
+                {
+                    Log.Message($"[RimTalk-Quests] AI Response:\n{result}");
+                }
 
                 if (result != null)
                 {
@@ -73,13 +88,15 @@ namespace RimTalkQuests.Services
                     var aiData = ParseAIResponse(result, quest);
 
                     // Directly modify quest fields instead of caching
-                    if (!string.IsNullOrEmpty(aiData.Description))
+                    if (!aiData.Description.NullOrEmpty())
                     {
                         quest.description = aiData.Description;
                     }
 
-                    if (!string.IsNullOrEmpty(aiData.Name)
-                        && RimTalkQuestsMod.Settings.enableAIDescriptions)
+                    if (
+                        !string.IsNullOrEmpty(aiData.Name)
+                        && RimTalkQuestsMod.Settings.enableAIDescriptions
+                    )
                     {
                         quest.name = aiData.Name;
                     }
@@ -92,7 +109,8 @@ namespace RimTalkQuests.Services
                     if (Prefs.DevMode)
                     {
                         Log.Warning(
-                            $"[RimTalk-Quests] Failed to generate description for quest: {quest.name}");
+                            $"[RimTalk-Quests] Failed to generate description for quest: {quest.name}"
+                        );
                     }
                 }
             }
@@ -143,14 +161,22 @@ namespace RimTalkQuests.Services
         /// </summary>
         private static string BuildSystemInstruction()
         {
-            return @"You are a creative quest writer for RimWorld, a sci-fi colony simulation game. 
+            var lang = Constant.Lang;
+            return $@"You are a creative quest writer for RimWorld, a sci-fi colony simulation game.
 Your task is to rewrite quest descriptions to make them more engaging, narrative-driven, and immersive.
-Keep the core information intact but add flavor, personality, and storytelling.
+
+IMPORTANT:
+- Write in {lang}
+- Keep the core information intact
+- Preserve any text in <color=...>tags</color> or <b>bold tags</b> EXACTLY as they appear
+- Keep numerical values and proper names unchanged
+- Add narrative flair and storytelling
+
 Respond in this JSON format:
-{
-  ""name"": ""A creative quest title"",
-  ""description"": ""The detailed quest description with narrative flair""
-}";
+{{
+  ""name"": ""A creative quest title in {lang}"",
+  ""description"": ""The detailed quest description with narrative flair in {lang}, preserving all <color> and <b> tags""
+}}";
         }
 
         /// <summary>
@@ -207,14 +233,13 @@ Respond in this JSON format:
                 if (client == null)
                 {
                     Log.Warning(
-                        "[RimTalk-Quests] Failed to get AI client - check RimTalk configuration");
+                        "[RimTalk-Quests] Failed to get AI client - check RimTalk configuration"
+                    );
                     return null;
                 }
 
                 // Build message list
-                var messages = new List<(Role, string)> {
-                    (Role.User, prompt)
-                };
+                var messages = new List<(Role, string)> { (Role.User, prompt) };
 
                 // Call AI service
                 var payload = await client.GetChatCompletionAsync(instruction, messages);
@@ -249,17 +274,27 @@ Respond in this JSON format:
                     return new QuestAIData
                     {
                         Name = !string.IsNullOrEmpty(name) ? name : quest.name,
-                        Description = !string.IsNullOrEmpty(description) ? description : response
+                        Description = !string.IsNullOrEmpty(description) 
+                            ? new TaggedString(description) 
+                            : new TaggedString(response)
                     };
                 }
 
                 // Fallback: use the entire response as description
-                return new QuestAIData { Name = quest.name, Description = response };
+                return new QuestAIData 
+                { 
+                    Name = quest.name, 
+                    Description = new TaggedString(response) 
+                };
             }
             catch (Exception ex)
             {
                 Log.Warning($"[RimTalk-Quests] Error parsing AI response: {ex}");
-                return new QuestAIData { Name = quest.name, Description = response };
+                return new QuestAIData 
+                { 
+                    Name = quest.name, 
+                    Description = new TaggedString(response) 
+                };
             }
         }
 
@@ -324,8 +359,7 @@ Respond in this JSON format:
             {
                 if (Prefs.DevMode)
                 {
-                    Log.Warning(
-                        $"[RimTalk-Quests] Error checking AI service availability: {ex}");
+                    Log.Warning($"[RimTalk-Quests] Error checking AI service availability: {ex}");
                 }
                 return false;
             }

@@ -8,7 +8,7 @@ namespace RimTalkQuests.Patches
 {
     /// <summary>
     /// Harmony patch to intercept quest acceptance and generate AI descriptions.
-    /// 
+    ///
     /// This patch hooks into RimWorld's quest system to provide dynamic, context-aware
     /// quest descriptions using RimTalk's AI integration.
     /// </summary>
@@ -30,7 +30,9 @@ namespace RimTalkQuests.Patches
                 if (!Services.QuestDescriptionGenerator.IsAIServiceAvailable())
                 {
                     if (Prefs.DevMode)
-                        Log.Warning("[RimTalk-Quests] AI service not available. Make sure RimTalk is configured with an API key.");
+                        Log.Warning(
+                            "[RimTalk-Quests] AI service not available. Make sure RimTalk is configured with an API key."
+                        );
                     return;
                 }
 
@@ -65,7 +67,9 @@ namespace RimTalkQuests.Patches
                 if (!Services.QuestDescriptionGenerator.IsAIServiceAvailable())
                 {
                     if (Prefs.DevMode)
-                        Log.Warning("[RimTalk-Quests] AI service not available. Make sure RimTalk is configured with an API key.");
+                        Log.Warning(
+                            "[RimTalk-Quests] AI service not available. Make sure RimTalk is configured with an API key."
+                        );
                     return;
                 }
 

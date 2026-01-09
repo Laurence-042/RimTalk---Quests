@@ -293,17 +293,14 @@ but do not repeat raw data (dates, stats) directly.";
         )
         {
             // Get AI client from RimTalk
-            var innerClient = await AIClientFactory.GetAIClientAsync();
-            if (innerClient == null)
+            var client = await AIClientFactory.GetAIClientAsync();
+            if (client == null)
             {
                 Log.Warning(
                     "[RimTalk-Quests] Failed to get AI client - check RimTalk configuration"
                 );
                 return null;
             }
-
-            // Wrap with proxy to fix streaming bug
-            var client = new StreamingAIClientProxy(innerClient);
 
             // Build message list
             var messages = new List<(Role, string)> { (Role.User, prompt) };
@@ -313,12 +310,12 @@ but do not repeat raw data (dates, stats) directly.";
 
             if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
             {
-                Log.Message("[RimTalk-Quests] Starting streaming API call with proxy...");
+                Log.Message("[RimTalk-Quests] Starting fixed streaming API call...");
             }
 
-            // Call AI service with streaming - proxy bypasses JsonStreamParser
+            // Use fixed streaming extension method that bypasses JsonStreamParser bug
             int chunkCount = 0;
-            var payload = await client.GetStreamingChatCompletionAsync<string>(
+            var payload = await client.GetFixedStreamingChatCompletionAsync<string>(
                 instruction,
                 messages,
                 chunk =>

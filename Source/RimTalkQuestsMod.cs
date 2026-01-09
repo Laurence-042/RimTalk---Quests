@@ -85,6 +85,27 @@ namespace RimTalkQuests
                 "Enable detailed debug logs including streaming chunks. Only works in Dev Mode."
             );
 
+            listingStandard.Gap();
+            listingStandard.Label("Custom Quest Instruction:");
+            listingStandard.Label(
+                "Leave empty to use default. This will be appended to RimTalk's base instruction.",
+                -1f
+            );
+
+            float textHeight = 150f;
+            Rect textAreaRect = listingStandard.GetRect(textHeight);
+            Settings.customQuestInstruction = string.IsNullOrWhiteSpace(
+                Settings.customQuestInstruction
+            )
+                ? Constant.GetDefaultQuestInstruction()
+                : Settings.customQuestInstruction;
+            Settings.customQuestInstruction = Widgets.TextArea(
+                textAreaRect,
+                Settings.customQuestInstruction
+            );
+
+            listingStandard.Gap();
+
             if (listingStandard.ButtonText("Clear Cache"))
             {
                 Services.QuestDescriptionGenerator.ClearCache();
@@ -110,6 +131,7 @@ namespace RimTalkQuests
         public bool enableAIDescriptions = true;
         public bool cacheDescriptions = true;
         public bool verboseDebugLogging = false;
+        public string customQuestInstruction = "";
 
         public override void ExposeData()
         {
@@ -117,6 +139,7 @@ namespace RimTalkQuests
             Scribe_Values.Look(ref enableAIDescriptions, "enableAIDescriptions", true);
             Scribe_Values.Look(ref cacheDescriptions, "cacheDescriptions", true);
             Scribe_Values.Look(ref verboseDebugLogging, "verboseDebugLogging", false);
+            Scribe_Values.Look(ref customQuestInstruction, "customQuestInstruction", "");
         }
     }
 }

@@ -9,6 +9,7 @@ using RimWorld.QuestGen;
 using RimTalk.Client;
 using RimTalk.Data;
 using RimTalk.Util;
+using RimTalkQuests.Services.Streaming;
 using Verse;
 
 namespace RimTalkQuests.Services

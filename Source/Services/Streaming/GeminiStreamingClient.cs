@@ -8,6 +8,7 @@ using RimTalk.Client;
 using RimTalk.Client.Gemini;
 using RimTalk.Data;
 using RimTalk.Util;
+using RimTalkQuests.Util;
 using UnityEngine.Networking;
 using Verse;
 
@@ -152,7 +153,7 @@ namespace RimTalkQuests.Services.Streaming
                 Log.Message($"[RimTalk-Quests] Request URL: {url}");
             }
 
-            Logger.Debug($"API request: {url}\n{jsonContent}");
+            QuestLogger.Debug($"API request: {url}\n{jsonContent}");
 
             using var webRequest = new UnityWebRequest(url, "POST");
             webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));
@@ -204,11 +205,11 @@ namespace RimTalkQuests.Services.Streaming
             )
             {
                 string errorMsg = webRequest.error;
-                Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
+                QuestLogger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
                 throw new Exception($"Request failed: {errorMsg}");
             }
 
-            Logger.Debug($"API response: \n{streamHandler.GetRawJson()}");
+            QuestLogger.Debug($"API response: \n{streamHandler.GetRawJson()}");
             return streamHandler.GetFullText();
         }
 

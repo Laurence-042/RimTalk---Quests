@@ -7,6 +7,7 @@ using RimTalk.Client;
 using RimTalk.Client.Player2;
 using RimTalk.Data;
 using RimTalk.Util;
+using RimTalkQuests.Util;
 using UnityEngine.Networking;
 using Verse;
 
@@ -103,14 +104,14 @@ namespace RimTalkQuests.Services.Streaming
             string localKey = await TryGetLocalApiKeyAsync();
             if (!string.IsNullOrEmpty(localKey))
             {
-                Logger.Debug("Player2: Using local app connection");
+                QuestLogger.Debug("Player2: Using local app connection");
                 return (LocalUrl, localKey, true);
             }
 
             // Fall back to remote
             if (!string.IsNullOrEmpty(fallbackApiKey))
             {
-                Logger.Debug("Player2: Using remote connection with API key");
+                QuestLogger.Debug("Player2: Using remote connection with API key");
                 return (remoteBaseUrl, fallbackApiKey, false);
             }
 
@@ -132,7 +133,7 @@ namespace RimTalkQuests.Services.Streaming
 
             try
             {
-                Logger.Debug("Player2: Checking for local app...");
+                QuestLogger.Debug("Player2: Checking for local app...");
 
                 // Health check
                 using (var healthRequest = UnityWebRequest.Get($"{LocalUrl}/v1/health"))
@@ -143,11 +144,11 @@ namespace RimTalkQuests.Services.Streaming
                     if (healthRequest.result == UnityWebRequest.Result.ConnectionError ||
                         healthRequest.result == UnityWebRequest.Result.ProtocolError)
                     {
-                        Logger.Debug($"Player2: Local health check failed: {healthRequest.error}");
+                        QuestLogger.Debug($"Player2: Local health check failed: {healthRequest.error}");
                         return null;
                     }
 
-                    Logger.Debug("Player2: Local health check passed");
+                    QuestLogger.Debug("Player2: Local health check passed");
                 }
 
                 // Login to get API key
@@ -163,26 +164,26 @@ namespace RimTalkQuests.Services.Streaming
                     if (loginRequest.result == UnityWebRequest.Result.ConnectionError ||
                         loginRequest.result == UnityWebRequest.Result.ProtocolError)
                     {
-                        Logger.Debug($"Player2: Local login failed: {loginRequest.responseCode} - {loginRequest.error}");
+                        QuestLogger.Debug($"Player2: Local login failed: {loginRequest.responseCode} - {loginRequest.error}");
                         return null;
                     }
 
                     var response = JsonUtil.DeserializeFromJson<LocalPlayer2Response>(loginRequest.downloadHandler.text);
                     if (!string.IsNullOrEmpty(response?.P2Key))
                     {
-                        Logger.Message("[Player2] ✓ Local app authenticated successfully");
+                        QuestLogger.Message("[Player2] ✓ Local app authenticated successfully");
                         _cachedLocalApiKey = response.P2Key;
                         _localKeyExpiry = DateTime.Now + LocalKeyTTL;
                         return _cachedLocalApiKey;
                     }
 
-                    Logger.Warning("Player2: Local app responded but no API key in response");
+                    QuestLogger.Warning("Player2: Local app responded but no API key in response");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                Logger.Debug($"Player2: Local detection failed: {ex.Message}");
+                QuestLogger.Debug($"Player2: Local detection failed: {ex.Message}");
                 return null;
             }
         }
@@ -259,7 +260,7 @@ namespace RimTalkQuests.Services.Streaming
                 );
             }
 
-            Logger.Debug($"Player2 API request ({(isLocal ? "local" : "remote")}): {url}\n{jsonContent}");
+            QuestLogger.Debug($"Player2 API request ({(isLocal ? "local" : "remote")}): {url}\n{jsonContent}");
 
             using var webRequest = new UnityWebRequest(url, "POST");
             webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));
@@ -321,7 +322,7 @@ namespace RimTalkQuests.Services.Streaming
                 {
                     ClearLocalKeyCache();
                 }
-                Logger.Error($"Player2 streaming error: {errorMsg}");
+                QuestLogger.Error($"Player2 streaming error: {errorMsg}");
                 throw new Exception($"Player2 streaming error: {errorMsg}");
             }
 
@@ -336,11 +337,11 @@ namespace RimTalkQuests.Services.Streaming
                 {
                     ClearLocalKeyCache();
                 }
-                Logger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
+                QuestLogger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
                 throw new Exception($"Request failed: {errorMsg}");
             }
 
-            Logger.Debug($"Player2 API response: \n{streamHandler.GetRawJson()}");
+            QuestLogger.Debug($"Player2 API response: \n{streamHandler.GetRawJson()}");
             return streamHandler.GetFullText();
         }
 

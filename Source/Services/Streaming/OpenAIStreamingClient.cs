@@ -31,14 +31,20 @@ namespace RimTalkQuests.Services.Streaming
             var config = settings.GetActiveConfig();
             var model = settings.GetCurrentModel();
 
-            string baseUrl = config?.BaseUrl ?? "";
             string apiKey = config?.ApiKey ?? "";
 
-            // Get extra headers from provider registry if available
+            // Resolve base URL: registered providers store their URL in the registry,
+            // while Local/Custom providers use config.BaseUrl entered by the user.
+            string baseUrl;
             Dictionary<string, string> extraHeaders = null;
             if (AIProviderRegistry.Defs.TryGetValue(config.Provider, out var def))
             {
+                baseUrl = def.EndpointUrl;
                 extraHeaders = def.ExtraHeaders;
+            }
+            else
+            {
+                baseUrl = config?.BaseUrl ?? "";
             }
 
             return await StreamAsync(

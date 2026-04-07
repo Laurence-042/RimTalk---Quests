@@ -147,7 +147,7 @@ namespace RimTalkQuests.Services.Streaming
             GeminiStreamHandler streamHandler
         )
         {
-            if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+            if (Prefs.DevMode)
             {
                 Log.Message($"[RimTalk-Quests] Request URL: {url}");
             }

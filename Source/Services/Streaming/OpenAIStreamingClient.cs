@@ -169,6 +169,11 @@ namespace RimTalkQuests.Services.Streaming
                 throw new InvalidOperationException("Endpoint URL is missing");
             }
 
+            if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+            {
+                Log.Message($"[RimTalk-Quests] Request URL: {endpointUrl}");
+            }
+
             Logger.Debug($"API request: {endpointUrl}\n{jsonContent}");
 
             using var webRequest = new UnityWebRequest(endpointUrl, "POST");

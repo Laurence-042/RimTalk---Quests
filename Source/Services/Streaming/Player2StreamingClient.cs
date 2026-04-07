@@ -252,6 +252,13 @@ namespace RimTalkQuests.Services.Streaming
             bool isLocal
         )
         {
+            if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+            {
+                Log.Message(
+                    $"[RimTalk-Quests] Request URL ({(isLocal ? "local" : "remote")}): {url}"
+                );
+            }
+
             Logger.Debug($"Player2 API request ({(isLocal ? "local" : "remote")}): {url}\n{jsonContent}");
 
             using var webRequest = new UnityWebRequest(url, "POST");

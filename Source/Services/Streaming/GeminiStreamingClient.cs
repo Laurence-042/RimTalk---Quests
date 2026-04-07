@@ -147,6 +147,11 @@ namespace RimTalkQuests.Services.Streaming
             GeminiStreamHandler streamHandler
         )
         {
+            if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
+            {
+                Log.Message($"[RimTalk-Quests] Request URL: {url}");
+            }
+
             Logger.Debug($"API request: {url}\n{jsonContent}");
 
             using var webRequest = new UnityWebRequest(url, "POST");

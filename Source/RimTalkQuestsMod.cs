@@ -58,7 +58,7 @@ namespace RimTalkQuests
 
         public override string SettingsCategory()
         {
-            return "RimTalk - Quests";
+            return "RimTalkQuests.Settings.Category".Translate();
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -68,21 +68,21 @@ namespace RimTalkQuests
             listingStandard.Begin(inRect);
 
             listingStandard.CheckboxLabeled(
-                "Enable AI Quest Descriptions",
+                "RimTalkQuests.Settings.EnableAIDescriptions".Translate(),
                 ref Settings.enableAIDescriptions,
-                "This mod will not work if disabled. Use this to check if errors are caused by this mod."
+                "RimTalkQuests.Settings.EnableAIDescriptions.Desc".Translate()
             );
 
             listingStandard.CheckboxLabeled(
-                "Verbose Debug Logging",
+                "RimTalkQuests.Settings.VerboseDebugLogging".Translate(),
                 ref Settings.verboseDebugLogging,
-                "Enable detailed debug logs including streaming chunks. Only works in Dev Mode."
+                "RimTalkQuests.Settings.VerboseDebugLogging.Desc".Translate()
             );
 
             listingStandard.Gap();
-            listingStandard.Label("Custom Quest Instruction:");
+            listingStandard.Label("RimTalkQuests.Settings.CustomQuestInstruction".Translate());
             listingStandard.Label(
-                "Leave empty to use default. This will be appended to RimTalk's base instruction.",
+                "RimTalkQuests.Settings.CustomQuestInstruction.Desc".Translate(),
                 -1f
             );
 
@@ -100,20 +100,20 @@ namespace RimTalkQuests
 
             listingStandard.Gap();
 
-            if (listingStandard.ButtonText("Clear Cache"))
+            if (listingStandard.ButtonText("RimTalkQuests.Settings.ClearCache".Translate()))
             {
                 Services.QuestDescriptionGenerator.ClearCache();
                 Messages.Message(
-                    "Quest description cache cleared.",
+                    "RimTalkQuests.Settings.CacheCleared".Translate(),
                     MessageTypeDefOf.NeutralEvent,
                     historical: false
                 );
             }
 
             listingStandard.Gap();
-            listingStandard.Label("RimTalk-Quests uses your existing RimTalk AI configuration.");
+            listingStandard.Label("RimTalkQuests.Settings.UsesRimTalkConfig".Translate());
             listingStandard.Label(
-                $"Currently processing: {Services.QuestDescriptionGenerator.ProcessingCount} quests"
+                "RimTalkQuests.Settings.CurrentlyProcessing".Translate(Services.QuestDescriptionGenerator.ProcessingCount)
             );
 
             listingStandard.End();

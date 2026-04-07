@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<LanguageData>
+    <!-- Settings -->
+    <RimTalkQuests.Settings.Category>RimTalk - Quests</RimTalkQuests.Settings.Category>
+    <RimTalkQuests.Settings.EnableAIDescriptions>Enable AI Quest Descriptions</RimTalkQuests.Settings.EnableAIDescriptions>
+    <RimTalkQuests.Settings.EnableAIDescriptions.Desc>This mod will not work if disabled. Use this to check if errors are caused by this mod.</RimTalkQuests.Settings.EnableAIDescriptions.Desc>
+    <RimTalkQuests.Settings.VerboseDebugLogging>Verbose Debug Logging</RimTalkQuests.Settings.VerboseDebugLogging>
+    <RimTalkQuests.Settings.VerboseDebugLogging.Desc>Enable detailed debug logs including streaming chunks. Only works in Dev Mode.</RimTalkQuests.Settings.VerboseDebugLogging.Desc>
+    <RimTalkQuests.Settings.CustomQuestInstruction>Custom Quest Instruction:</RimTalkQuests.Settings.CustomQuestInstruction>
+    <RimTalkQuests.Settings.CustomQuestInstruction.Desc>Leave empty to use default. This will be appended to RimTalk's base instruction.</RimTalkQuests.Settings.CustomQuestInstruction.Desc>
+    <RimTalkQuests.Settings.ClearCache>Clear Cache</RimTalkQuests.Settings.ClearCache>
+    <RimTalkQuests.Settings.CacheCleared>Quest description cache cleared.</RimTalkQuests.Settings.CacheCleared>
+    <RimTalkQuests.Settings.UsesRimTalkConfig>RimTalk-Quests uses your existing RimTalk AI configuration.</RimTalkQuests.Settings.UsesRimTalkConfig>
+    <RimTalkQuests.Settings.CurrentlyProcessing>Currently processing: {0} quests</RimTalkQuests.Settings.CurrentlyProcessing>
+</LanguageData>

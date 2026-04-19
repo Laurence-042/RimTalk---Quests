@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using RimTalk.Client;
 using RimTalk.Client.OpenAI;
-using RimTalk.Client.Gemini;
 using RimTalk.Client.Player2;
 using RimTalk.Data;
 
@@ -29,15 +28,6 @@ namespace RimTalkQuests.Services.Streaming
             if (client is OpenAIClient)
             {
                 return await OpenAIStreamingClient.StreamFromSettingsAsync(
-                    instruction,
-                    messages,
-                    onTextChunkReceived
-                );
-            }
-
-            if (client is GeminiClient)
-            {
-                return await GeminiStreamingClient.StreamFromSettingsAsync(
                     instruction,
                     messages,
                     onTextChunkReceived

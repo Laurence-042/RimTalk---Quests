@@ -132,7 +132,7 @@ namespace RimTalkQuests
     {
         public bool enableAIDescriptions = true;
         public bool verboseDebugLogging = false;
-        public bool cleanThinkTagsDuringStreaming = true;
+        public bool cleanThinkTagsDuringStreaming = false;
         public string customQuestInstruction = "";
 
         public override void ExposeData()

@@ -119,25 +119,16 @@ namespace RimTalkQuests.Services.Streaming
             bool stream
         )
         {
-            var allMessages = new List<RimTalk.Client.OpenAI.Message>();
-
-            if (!string.IsNullOrEmpty(instruction))
-            {
-                allMessages.Add(
-                    new RimTalk.Client.OpenAI.Message { Role = "system", Content = instruction }
-                );
-            }
-
-            allMessages.AddRange(
-                messages.Select(
-                    m =>
-                        new RimTalk.Client.OpenAI.Message
-                        {
-                            Role = m.role == Role.User ? "user" : "assistant",
-                            Content = m.message
-                        }
-                )
+            var normalized = BuildNormalizedMessages(
+                instruction,
+                messages,
+                mergeConsecutiveSameRole: false
             );
+            var allMessages = normalized
+                .Select(
+                    m => new RimTalk.Client.OpenAI.Message { Role = m.role, Content = m.content }
+                )
+                .ToList();
 
             var request = new OpenAIRequest
             {
@@ -150,7 +141,7 @@ namespace RimTalkQuests.Services.Streaming
             return JsonUtil.SerializeToJson(request);
         }
 
-        private static async Task<string> SendRequestAsync(
+        private async Task<string> SendRequestAsync(
             string endpointUrl,
             string jsonContent,
             string apiKey,
@@ -171,21 +162,13 @@ namespace RimTalkQuests.Services.Streaming
 
             QuestLogger.Debug($"API request: {endpointUrl}\n{jsonContent}");
 
-            using var webRequest = new UnityWebRequest(endpointUrl, "POST");
-            webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));
-            webRequest.downloadHandler = streamHandler;
-            webRequest.SetRequestHeader("Content-Type", "application/json");
-
-            if (!string.IsNullOrEmpty(apiKey))
-                webRequest.SetRequestHeader("Authorization", $"Bearer {apiKey}");
-
-            if (extraHeaders != null)
-            {
-                foreach (var header in extraHeaders)
-                    webRequest.SetRequestHeader(header.Key, header.Value);
-            }
-
-            var asyncOp = webRequest.SendWebRequest();
+            using var webRequest = CreateJsonPostRequest(
+                endpointUrl,
+                jsonContent,
+                streamHandler,
+                apiKey,
+                extraHeaders
+            );
 
             // Timeout logic - longer timeout for local endpoints
             bool isLocal =
@@ -194,55 +177,25 @@ namespace RimTalkQuests.Services.Streaming
                 || endpointUrl.Contains("192.168.")
                 || endpointUrl.Contains("10.");
 
-            float inactivityTimer = 0f;
-            ulong lastBytes = 0;
             float connectTimeout = isLocal ? 300f : 60f;
             float readTimeout = 60f;
 
-            while (!asyncOp.isDone)
+            bool completed = await AwaitStreamingResponseAsync(
+                webRequest,
+                connectTimeout,
+                readTimeout,
+                timeout => $"Connection timed out (Waited {timeout}s for first token)",
+                timeout => $"Read timed out (Stalled for {timeout}s during generation)"
+            );
+
+            if (!completed)
             {
-                if (Current.Game == null)
-                    return null;
-                await Task.Delay(100);
-
-                ulong currentBytes = webRequest.downloadedBytes;
-                bool hasStartedReceiving = currentBytes > 0;
-
-                if (currentBytes > lastBytes)
-                {
-                    inactivityTimer = 0f;
-                    lastBytes = currentBytes;
-                }
-                else
-                {
-                    inactivityTimer += 0.1f;
-                }
-
-                if (!hasStartedReceiving && inactivityTimer > connectTimeout)
-                {
-                    webRequest.Abort();
-                    throw new TimeoutException(
-                        $"Connection timed out (Waited {connectTimeout}s for first token)"
-                    );
-                }
-
-                if (hasStartedReceiving && inactivityTimer > readTimeout)
-                {
-                    webRequest.Abort();
-                    throw new TimeoutException(
-                        $"Read timed out (Stalled for {readTimeout}s during generation)"
-                    );
-                }
+                return null;
             }
 
-            if (
-                webRequest.result == UnityWebRequest.Result.ConnectionError
-                || webRequest.result == UnityWebRequest.Result.ProtocolError
-            )
+            if (HasTransportError(webRequest))
             {
-                string errorMsg = webRequest.error;
-                QuestLogger.Error($"Request failed: {webRequest.responseCode} - {errorMsg}");
-                throw new Exception($"Request failed: {errorMsg}");
+                ThrowRequestFailed(webRequest, "Request failed");
             }
 
             QuestLogger.Debug($"API response: \n{streamHandler.GetRawJson()}");

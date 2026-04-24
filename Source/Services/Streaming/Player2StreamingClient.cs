@@ -17,7 +17,7 @@ namespace RimTalkQuests.Services.Streaming
     /// Plain text streaming client for Player2 API.
     /// Supports both local Player2 app (auto-authentication) and remote API (manual key).
     /// </summary>
-    public static class Player2StreamingClient
+    public class Player2StreamingClient : StreamingClient
     {
         private const string GameClientId = "019a8368-b00b-72bc-b367-2825079dc6fb";
         private const string LocalUrl = "http://localhost:4315";
@@ -27,11 +27,13 @@ namespace RimTalkQuests.Services.Streaming
         private static DateTime _localKeyExpiry = DateTime.MinValue;
         private static readonly TimeSpan LocalKeyTTL = TimeSpan.FromMinutes(30);
 
+        public Player2StreamingClient(IAIClient client) : base(client) { }
+
         /// <summary>
         /// Stream chat completion using settings from RimTalk configuration.
         /// Automatically tries local Player2 app first, falls back to configured API key.
         /// </summary>
-        public static async Task<Payload> StreamFromSettingsAsync(
+        public override async Task<Payload> StreamFromSettingsAsync(
             string instruction,
             List<(Role role, string message)> messages,
             Action<string> onTextChunkReceived
@@ -56,7 +58,7 @@ namespace RimTalkQuests.Services.Streaming
         /// Stream chat completion from Player2 API with explicit parameters.
         /// Automatically tries local app first, falls back to remote with provided apiKey.
         /// </summary>
-        public static async Task<Payload> StreamAsync(
+        public async Task<Payload> StreamAsync(
             string remoteBaseUrl,
             string fallbackApiKey,
             string instruction,
@@ -65,7 +67,10 @@ namespace RimTalkQuests.Services.Streaming
         )
         {
             // Try to get local connection first
-            var (baseUrl, apiKey, isLocal) = await ResolveConnectionAsync(remoteBaseUrl, fallbackApiKey);
+            var (baseUrl, apiKey, isLocal) = await ResolveConnectionAsync(
+                remoteBaseUrl,
+                fallbackApiKey
+            );
 
             // Build endpoint URL
             string endpointUrl = $"{baseUrl}/v1/chat/completions";
@@ -74,9 +79,7 @@ namespace RimTalkQuests.Services.Streaming
             string jsonContent = BuildRequestJson(instruction, messages, stream: true);
 
             // Create stream handler with callback
-            var streamHandler = new Player2StreamHandler(
-                chunk => onTextChunkReceived?.Invoke(chunk)
-            );
+            var streamHandler = new Player2StreamHandler(SafeChunkCallback(onTextChunkReceived));
 
             // Send request
             await SendRequestAsync(endpointUrl, jsonContent, apiKey, streamHandler, isLocal);
@@ -141,10 +144,14 @@ namespace RimTalkQuests.Services.Streaming
                     healthRequest.timeout = 2;
                     await SendWebRequestAsync(healthRequest);
 
-                    if (healthRequest.result == UnityWebRequest.Result.ConnectionError ||
-                        healthRequest.result == UnityWebRequest.Result.ProtocolError)
+                    if (
+                        healthRequest.result == UnityWebRequest.Result.ConnectionError
+                        || healthRequest.result == UnityWebRequest.Result.ProtocolError
+                    )
                     {
-                        QuestLogger.Debug($"Player2: Local health check failed: {healthRequest.error}");
+                        QuestLogger.Debug(
+                            $"Player2: Local health check failed: {healthRequest.error}"
+                        );
                         return null;
                     }
 
@@ -152,7 +159,12 @@ namespace RimTalkQuests.Services.Streaming
                 }
 
                 // Login to get API key
-                using (var loginRequest = new UnityWebRequest($"{LocalUrl}/v1/login/web/{GameClientId}", "POST"))
+                using (
+                    var loginRequest = new UnityWebRequest(
+                        $"{LocalUrl}/v1/login/web/{GameClientId}",
+                        "POST"
+                    )
+                )
                 {
                     loginRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("{}"));
                     loginRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -161,14 +173,20 @@ namespace RimTalkQuests.Services.Streaming
 
                     await SendWebRequestAsync(loginRequest);
 
-                    if (loginRequest.result == UnityWebRequest.Result.ConnectionError ||
-                        loginRequest.result == UnityWebRequest.Result.ProtocolError)
+                    if (
+                        loginRequest.result == UnityWebRequest.Result.ConnectionError
+                        || loginRequest.result == UnityWebRequest.Result.ProtocolError
+                    )
                     {
-                        QuestLogger.Debug($"Player2: Local login failed: {loginRequest.responseCode} - {loginRequest.error}");
+                        QuestLogger.Debug(
+                            $"Player2: Local login failed: {loginRequest.responseCode} - {loginRequest.error}"
+                        );
                         return null;
                     }
 
-                    var response = JsonUtil.DeserializeFromJson<LocalPlayer2Response>(loginRequest.downloadHandler.text);
+                    var response = JsonUtil.DeserializeFromJson<LocalPlayer2Response>(
+                        loginRequest.downloadHandler.text
+                    );
                     if (!string.IsNullOrEmpty(response?.P2Key))
                     {
                         QuestLogger.Message("[Player2] ✓ Local app authenticated successfully");
@@ -260,7 +278,9 @@ namespace RimTalkQuests.Services.Streaming
                 );
             }
 
-            QuestLogger.Debug($"Player2 API request ({(isLocal ? "local" : "remote")}): {url}\n{jsonContent}");
+            QuestLogger.Debug(
+                $"Player2 API request ({(isLocal ? "local" : "remote")}): {url}\n{jsonContent}"
+            );
 
             using var webRequest = new UnityWebRequest(url, "POST");
             webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));

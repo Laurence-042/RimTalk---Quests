@@ -17,12 +17,14 @@ namespace RimTalkQuests.Services.Streaming
     /// <summary>
     /// Plain text streaming client for OpenAI-compatible APIs
     /// </summary>
-    public static class OpenAIStreamingClient
+    public class OpenAIStreamingClient : StreamingClient
     {
+        public OpenAIStreamingClient(IAIClient client) : base(client) { }
+
         /// <summary>
         /// Stream chat completion using settings from RimTalk configuration
         /// </summary>
-        public static async Task<Payload> StreamFromSettingsAsync(
+        public override async Task<Payload> StreamFromSettingsAsync(
             string instruction,
             List<(Role role, string message)> messages,
             Action<string> onTextChunkReceived
@@ -62,7 +64,7 @@ namespace RimTalkQuests.Services.Streaming
         /// <summary>
         /// Stream chat completion from OpenAI-compatible APIs with explicit parameters
         /// </summary>
-        public static async Task<Payload> StreamAsync(
+        public async Task<Payload> StreamAsync(
             string baseUrl,
             string model,
             string apiKey,
@@ -79,18 +81,10 @@ namespace RimTalkQuests.Services.Streaming
             string jsonContent = BuildRequestJson(instruction, messages, model, stream: true);
 
             // Create stream handler with callback
-            var streamHandler = new OpenAIStreamHandler(
-                chunk => onTextChunkReceived?.Invoke(chunk)
-            );
+            var streamHandler = new OpenAIStreamHandler(SafeChunkCallback(onTextChunkReceived));
 
             // Send request
-            await SendRequestAsync(
-                endpointUrl,
-                jsonContent,
-                apiKey,
-                extraHeaders,
-                streamHandler
-            );
+            await SendRequestAsync(endpointUrl, jsonContent, apiKey, extraHeaders, streamHandler);
 
             return new Payload(
                 endpointUrl,

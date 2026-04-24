@@ -6,6 +6,8 @@
     <RimTalkQuests.Settings.EnableAIDescriptions.Desc>禁用后本模组将不会生效。可用于排查错误是否由本模组引起。</RimTalkQuests.Settings.EnableAIDescriptions.Desc>
     <RimTalkQuests.Settings.VerboseDebugLogging>详细调试日志</RimTalkQuests.Settings.VerboseDebugLogging>
     <RimTalkQuests.Settings.VerboseDebugLogging.Desc>启用包含流式传输分块在内的详细调试日志，仅在开发者模式下生效。</RimTalkQuests.Settings.VerboseDebugLogging.Desc>
+    <RimTalkQuests.Settings.CleanThinkTagsDuringStreaming>在流式过程中清理已闭合的 think/reasoning 标签</RimTalkQuests.Settings.CleanThinkTagsDuringStreaming>
+    <RimTalkQuests.Settings.CleanThinkTagsDuringStreaming.Desc>启用：think/reasoning 块一旦闭合就立即移除。禁用：生成期间保持可见，待输出完成后再统一清理。</RimTalkQuests.Settings.CleanThinkTagsDuringStreaming.Desc>
     <RimTalkQuests.Settings.CustomQuestInstruction>自定义任务指令：</RimTalkQuests.Settings.CustomQuestInstruction>
     <RimTalkQuests.Settings.CustomQuestInstruction.Desc>留空则使用默认指令。此内容将追加到 RimTalk 的基础指令之后。</RimTalkQuests.Settings.CustomQuestInstruction.Desc>
     <RimTalkQuests.Settings.ClearCache>清除缓存</RimTalkQuests.Settings.ClearCache>

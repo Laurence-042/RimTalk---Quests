@@ -79,6 +79,12 @@ namespace RimTalkQuests
                 "RimTalkQuests.Settings.VerboseDebugLogging.Desc".Translate()
             );
 
+            listingStandard.CheckboxLabeled(
+                "RimTalkQuests.Settings.CleanThinkTagsDuringStreaming".Translate(),
+                ref Settings.cleanThinkTagsDuringStreaming,
+                "RimTalkQuests.Settings.CleanThinkTagsDuringStreaming.Desc".Translate()
+            );
+
             listingStandard.Gap();
             listingStandard.Label("RimTalkQuests.Settings.CustomQuestInstruction".Translate());
             listingStandard.Label(
@@ -113,7 +119,9 @@ namespace RimTalkQuests
             listingStandard.Gap();
             listingStandard.Label("RimTalkQuests.Settings.UsesRimTalkConfig".Translate());
             listingStandard.Label(
-                "RimTalkQuests.Settings.CurrentlyProcessing".Translate(Services.QuestDescriptionGenerator.ProcessingCount)
+                "RimTalkQuests.Settings.CurrentlyProcessing".Translate(
+                    Services.QuestDescriptionGenerator.ProcessingCount
+                )
             );
 
             listingStandard.End();
@@ -124,6 +132,7 @@ namespace RimTalkQuests
     {
         public bool enableAIDescriptions = true;
         public bool verboseDebugLogging = false;
+        public bool cleanThinkTagsDuringStreaming = true;
         public string customQuestInstruction = "";
 
         public override void ExposeData()
@@ -131,6 +140,11 @@ namespace RimTalkQuests
             base.ExposeData();
             Scribe_Values.Look(ref enableAIDescriptions, "enableAIDescriptions", true);
             Scribe_Values.Look(ref verboseDebugLogging, "verboseDebugLogging", false);
+            Scribe_Values.Look(
+                ref cleanThinkTagsDuringStreaming,
+                "cleanThinkTagsDuringStreaming",
+                true
+            );
             Scribe_Values.Look(ref customQuestInstruction, "customQuestInstruction", "");
         }
     }

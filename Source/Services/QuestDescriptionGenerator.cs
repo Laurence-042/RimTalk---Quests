@@ -361,17 +361,22 @@ namespace RimTalkQuests.Services
             // Build message list
             var messages = new List<(Role, string)> { (Role.User, prompt) };
 
-            var accumulatedContent = new StringBuilder();
+            var postProcessor = new ThinkReasoningPostProcessor();
             var originalDescription = quest.description.ToString();
+            bool cleanDuringStreaming = RimTalkQuestsMod.Settings.cleanThinkTagsDuringStreaming;
+
+            var streamingClient = StreamingClientFactory.Create(client);
 
             if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
             {
                 Log.Message("[RimTalk-Quests] Starting plain text streaming API call...");
+                Log.Message(
+                    $"[RimTalk-Quests] Post-process mode: {(cleanDuringStreaming ? "real-time" : "final-only")}"
+                );
             }
 
-            // Use plain text streaming that bypasses JsonStreamParser entirely
             int chunkCount = 0;
-            var payload = await client.StreamPlainTextAsync(
+            var payload = await streamingClient.StreamFromSettingsAsync(
                 instruction,
                 messages,
                 chunk =>
@@ -387,19 +392,21 @@ namespace RimTalkQuests.Services
 
                     if (!string.IsNullOrEmpty(chunk))
                     {
-                        accumulatedContent.Append(chunk);
+                        postProcessor.AppendChunk(chunk);
+
+                        var displayContent = cleanDuringStreaming
+                            ? postProcessor.GetProcessedText()
+                            : postProcessor.GetRawText();
 
                         // Update quest description in real-time
                         var enhancedDescription =
-                            originalDescription
-                            + "\n\n───────────\n\n"
-                            + accumulatedContent.ToString();
+                            originalDescription + "\n\n───────────\n\n" + displayContent;
                         quest.description = new TaggedString(enhancedDescription);
 
                         if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
                         {
                             Log.Message(
-                                $"[RimTalk-Quests] Updated quest.description (total {accumulatedContent.Length} chars accumulated)"
+                                $"[RimTalk-Quests] Updated quest.description (display chars: {displayContent.Length}, raw chars: {postProcessor.GetRawText().Length})"
                             );
                         }
                     }
@@ -409,19 +416,26 @@ namespace RimTalkQuests.Services
             if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
             {
                 Log.Message(
-                    $"[RimTalk-Quests] Streaming completed. Total chunks: {chunkCount}, Final accumulated length: {accumulatedContent.Length}"
+                    $"[RimTalk-Quests] Streaming completed. Total chunks: {chunkCount}, Final raw length: {postProcessor.GetRawText().Length}"
                 );
             }
 
-            // Final update with complete response to ensure UI reflects the change
-            if (payload?.Response != null)
+            var finalRawText = payload?.Response;
+            if (string.IsNullOrEmpty(finalRawText))
             {
-                var finalDescription =
-                    originalDescription + "\n\n───────────\n\n" + payload.Response;
-                quest.description = new TaggedString(finalDescription);
+                finalRawText = postProcessor.GetRawText();
             }
 
-            return payload?.Response;
+            if (string.IsNullOrEmpty(finalRawText))
+            {
+                return null;
+            }
+
+            var finalProcessedText = postProcessor.ProcessFinal(finalRawText);
+            var finalDescription = originalDescription + "\n\n───────────\n\n" + finalProcessedText;
+            quest.description = new TaggedString(finalDescription);
+
+            return finalProcessedText;
         }
 
         /// <summary>

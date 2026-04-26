@@ -76,7 +76,7 @@ namespace RimTalkQuests.Services
 
                 if (Prefs.DevMode && result != null)
                 {
-                    Log.Message($"[RimTalk-Quests] AI Response:\n{result}");
+                    Log.Message($"[RimTalk-Quests] AI Response (processed):\n{result}");
                 }
 
                 // Streaming already updated the description in real-time
@@ -429,6 +429,11 @@ namespace RimTalkQuests.Services
             if (string.IsNullOrEmpty(finalRawText))
             {
                 return null;
+            }
+
+            if (Prefs.DevMode)
+            {
+                Log.Message($"[RimTalk-Quests] AI Response (raw):\n{finalRawText}");
             }
 
             var finalProcessedText = postProcessor.ProcessFinal(finalRawText);

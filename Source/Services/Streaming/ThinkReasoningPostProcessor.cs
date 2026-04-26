@@ -12,15 +12,15 @@ namespace RimTalkQuests.Services.Streaming
         private static readonly Regex[] ClosedBlockPatterns =
         {
             new Regex(
-                @"<\s*(think|reasoning|analysis)\b[^>]*>.*?<\s*/\s*\1\s*>",
+                @"<\s*(think|thought|thinking|reasoning|analysis)\b[^>]*>.*?<\s*/\s*\1\s*>",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled
             ),
             new Regex(
-                @"\[(think|reasoning|analysis)\].*?\[/\1\]",
+                @"\[(think|thought|thinking|reasoning|analysis)\].*?\[/\1\]",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled
             ),
             new Regex(
-                @"```\s*(think|reasoning|analysis)[^\n]*\n.*?```",
+                @"```\s*(think|thought|thinking|reasoning|analysis)[^\n]*\n.*?```",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled
             )
         };

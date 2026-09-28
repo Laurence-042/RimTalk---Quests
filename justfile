@@ -8,7 +8,8 @@ release:
     dotnet build RimTalkQuests.csproj -c Release
     rm -rf ../RimTalk-Quests.release
     mkdir -p ../RimTalk-Quests.release/About
-    cp About/About.xml About/Preview.png About/PublishedFileId.txt ../RimTalk-Quests.release/About/
+    sed 's/\.dev<\/packageId>/<\/packageId>/' About/About.xml > ../RimTalk-Quests.release/About/About.xml
+    cp About/Preview.png About/PublishedFileId.txt ../RimTalk-Quests.release/About/
     cp -r 1.6 ../RimTalk-Quests.release/1.6
     rm -f ../RimTalk-Quests.release/1.6/Assemblies/*.pdb
     cp -r Languages ../RimTalk-Quests.release/Languages

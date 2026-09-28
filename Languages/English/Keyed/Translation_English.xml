@@ -14,4 +14,10 @@
     <RimTalkQuests.Settings.CacheCleared>Quest description cache cleared.</RimTalkQuests.Settings.CacheCleared>
     <RimTalkQuests.Settings.UsesRimTalkConfig>RimTalk-Quests uses your existing RimTalk AI configuration.</RimTalkQuests.Settings.UsesRimTalkConfig>
     <RimTalkQuests.Settings.CurrentlyProcessing>Currently processing: {0} quests</RimTalkQuests.Settings.CurrentlyProcessing>
+
+    <!-- Quest tab regenerate button -->
+    <RimTalkQuests.Regenerate>Regenerate description</RimTalkQuests.Regenerate>
+    <RimTalkQuests.Regenerate.InProgress>Generating…</RimTalkQuests.Regenerate.InProgress>
+    <RimTalkQuests.Regenerate.Tooltip>Discard the current AI description and generate a new one from the original quest text.</RimTalkQuests.Regenerate.Tooltip>
+    <RimTalkQuests.Regenerate.Unavailable>RimTalk AI is not configured. Check your RimTalk settings.</RimTalkQuests.Regenerate.Unavailable>
 </LanguageData>

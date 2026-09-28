@@ -9,6 +9,7 @@ using RimWorld.QuestGen;
 using RimTalk.Client;
 using RimTalk.Data;
 using RimTalk.Util;
+using RimTalkQuests.Data;
 using RimTalkQuests.Services.Streaming;
 using Verse;
 
@@ -21,13 +22,59 @@ namespace RimTalkQuests.Services
     /// </summary>
     public static class QuestDescriptionGenerator
     {
+        /// <summary>
+        /// Separator inserted between the original quest text and the AI-generated narrative.
+        /// </summary>
+        internal const string DescriptionSeparator = "\n\n───────────\n\n";
+
         private static readonly HashSet<int> _processingQuests = new HashSet<int>();
 
         public static int ProcessingCount => _processingQuests.Count;
 
+        /// <summary>
+        /// Returns whether a quest description is currently being generated.
+        /// </summary>
+        public static bool IsProcessing(int questId)
+        {
+            return _processingQuests.Contains(questId);
+        }
+
+        /// <summary>
+        /// Clears only transient in-memory state. The persisted original descriptions
+        /// are intentionally kept, since they are part of the save data.
+        /// </summary>
         public static void ClearCache()
         {
             _processingQuests.Clear();
+        }
+
+        /// <summary>
+        /// Captures (once) the pristine original description of a quest and persists it.
+        /// </summary>
+        private static string EnsureOriginalDescription(Quest quest)
+        {
+            var store = Current.Game?.GetComponent<QuestDescriptionGenerationStore>();
+            if (store != null && store.TryGetOriginal(quest.id, out var persisted))
+                return persisted;
+
+            var original = quest.description.ToString();
+            store?.SetOriginal(quest.id, original);
+            return original;
+        }
+
+        /// <summary>
+        /// Restores the pristine original description, discarding any AI narrative.
+        /// </summary>
+        public static void RestoreOriginalDescription(Quest quest)
+        {
+            if (quest == null)
+                return;
+
+            var store = Current.Game?.GetComponent<QuestDescriptionGenerationStore>();
+            if (store != null && store.TryGetOriginal(quest.id, out var original))
+            {
+                quest.description = new TaggedString(original);
+            }
         }
 
         /// <summary>
@@ -35,25 +82,31 @@ namespace RimTalkQuests.Services
         /// </summary>
         public static async void GenerateQuestDescriptionAsync(Quest quest)
         {
+            if (quest == null)
+                return;
+
+            int questId = quest.id;
+
+            // Skip if already processing
+            if (_processingQuests.Contains(questId))
+                return;
+
+            _processingQuests.Add(questId);
+
             try
             {
-                if (quest == null)
-                    return;
-
-                int questId = quest.id;
-
-                // Skip if already processing
-                if (_processingQuests.Contains(questId))
-                    return;
-
-                _processingQuests.Add(questId);
-
                 if (Prefs.DevMode)
                 {
                     Log.Message(
                         $"[RimTalk-Quests] Generating AI description for quest: {quest.name}"
                     );
                 }
+
+                // Capture the pristine original (once) and reset the live description
+                // so we always build on the original text, never on a previous
+                // AI-generated narrative.
+                var originalDescription = EnsureOriginalDescription(quest);
+                quest.description = new TaggedString(originalDescription);
 
                 // Build the prompt
                 string prompt = BuildQuestPrompt(quest);
@@ -67,9 +120,6 @@ namespace RimTalkQuests.Services
                     Log.Message($"[RimTalk-Quests] Instruction:\n{instruction}");
                     Log.Message($"[RimTalk-Quests] Prompt:\n{prompt}");
                 }
-
-                // Store original description
-                var originalDescription = quest.description.ToString();
 
                 // Call RimTalk's AI service with streaming
                 var result = await CallRimTalkAI(instruction, prompt, quest);
@@ -105,8 +155,27 @@ namespace RimTalkQuests.Services
             }
             finally
             {
-                _processingQuests.Remove(quest.id);
+                _processingQuests.Remove(questId);
             }
+        }
+
+        /// <summary>
+        /// Regenerates the AI description for a quest, discarding the previously
+        /// generated narrative and starting over from the original quest text.
+        /// </summary>
+        public static void RegenerateQuestDescription(Quest quest)
+        {
+            if (quest == null)
+                return;
+
+            if (_processingQuests.Contains(quest.id))
+                return;
+
+            // Drop the current (possibly unsatisfying) AI narrative so the new
+            // generation starts from a clean slate.
+            RestoreOriginalDescription(quest);
+
+            GenerateQuestDescriptionAsync(quest);
         }
 
         /// <summary>
@@ -362,7 +431,7 @@ namespace RimTalkQuests.Services
             var messages = new List<(Role, string)> { (Role.User, prompt) };
 
             var postProcessor = new ThinkReasoningPostProcessor();
-            var originalDescription = quest.description.ToString();
+            var originalDescription = EnsureOriginalDescription(quest);
             bool cleanDuringStreaming = RimTalkQuestsMod.Settings.cleanThinkTagsDuringStreaming;
 
             var streamingClient = StreamingClientFactory.Create(client);
@@ -400,7 +469,7 @@ namespace RimTalkQuests.Services
 
                         // Update quest description in real-time
                         var enhancedDescription =
-                            originalDescription + "\n\n───────────\n\n" + displayContent;
+                            originalDescription + DescriptionSeparator + displayContent;
                         quest.description = new TaggedString(enhancedDescription);
 
                         if (RimTalkQuestsMod.Settings.verboseDebugLogging && Prefs.DevMode)
@@ -437,7 +506,8 @@ namespace RimTalkQuests.Services
             }
 
             var finalProcessedText = postProcessor.ProcessFinal(finalRawText);
-            var finalDescription = originalDescription + "\n\n───────────\n\n" + finalProcessedText;
+            var finalDescription =
+                originalDescription + DescriptionSeparator + finalProcessedText;
             quest.description = new TaggedString(finalDescription);
 
             return finalProcessedText;

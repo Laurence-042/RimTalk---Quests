@@ -14,4 +14,10 @@
     <RimTalkQuests.Settings.CacheCleared>任务描述缓存已清除。</RimTalkQuests.Settings.CacheCleared>
     <RimTalkQuests.Settings.UsesRimTalkConfig>RimTalk-Quests 使用您现有的 RimTalk AI 配置。</RimTalkQuests.Settings.UsesRimTalkConfig>
     <RimTalkQuests.Settings.CurrentlyProcessing>当前正在处理：{0} 个任务</RimTalkQuests.Settings.CurrentlyProcessing>
+
+    <!-- 任务界面重新生成按钮 -->
+    <RimTalkQuests.Regenerate>重新生成描述</RimTalkQuests.Regenerate>
+    <RimTalkQuests.Regenerate.InProgress>生成中……</RimTalkQuests.Regenerate.InProgress>
+    <RimTalkQuests.Regenerate.Tooltip>丢弃当前的 AI 描述，并根据原始任务文本重新生成一段新的描述。</RimTalkQuests.Regenerate.Tooltip>
+    <RimTalkQuests.Regenerate.Unavailable>RimTalk AI 尚未配置，请检查 RimTalk 设置。</RimTalkQuests.Regenerate.Unavailable>
 </LanguageData>
